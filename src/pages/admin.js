@@ -2,6 +2,7 @@
 import CategoryAdmin from '../components/adminForms/categoryAdminForm';
 import AuthorAdmin from '../components/adminForms/authorAdminForm';
 import ArticleAdmin from '../components/adminForms/articleAdminForm';
+import Link from 'next/link';
 
 
 export default function AdminPage() {
@@ -19,6 +20,11 @@ export default function AdminPage() {
                     <ArticleAdmin />
                 </div>
             </div>
+            <div className="md:col-span-2 text-center">
+                    <Link href="/admin/articles" className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700">
+                        Manage Articles
+                    </Link>
+                </div>
         </div>
     );
     

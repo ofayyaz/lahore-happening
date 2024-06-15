@@ -1,0 +1,44 @@
+/* ManageArticles.module.css */
+.title {
+    text-align: center;
+    margin-bottom: 16px;
+    font-size: 24px;  /* Example size, adjust as needed */
+    font-weight: bold; /* If you want it bold */
+}
+
+.container {
+    max-width: 960px;
+    margin: auto;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.articleContainer {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #eaeaea;
+}
+
+.editButton {
+    display: inline-block;
+    padding: 6px 12px;
+    margin-right: 12px;
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.editButton:hover {
+    background-color: #45a049;
+}
+
+.articleInfo {
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
