@@ -31,10 +31,53 @@ const Mutation = {
     });
    
   },
-    updateArticle: async (_, args) => await prisma.article.update({
-      where: { id: parseInt(args.id) },
-      data: args,
-    }),
+
+  updateArticle: async (_, args,  ) => {
+    const { id, title, content, categoryId, authorId, featured, published, images } = args;
+
+    const updatedArticle = await prisma.article.update({
+        where: { id: parseInt(id) },
+        data: {
+            title,
+            content,
+            featured,
+            published,
+            category: { connect: { id: parseInt(categoryId) } },
+            author: { connect: { id: parseInt(authorId) } },
+        }
+    });
+
+    const imagePromises = images.map(async img => {
+        if (img.id) {
+            // Update existing images
+            return prisma.image.update({
+                where: { id: img.id },
+                data: { url: img.url, alt: img.alt || null }
+            });
+        } else {
+            // Check if the image URL already exists to avoid duplicates
+            const existingImage = await prisma.image.findFirst({
+                where: { url: img.url }
+            });
+            if (!existingImage) {
+                // Create new image only if it does not exist
+                return prisma.image.create({
+                    data: {
+                        url: img.url,
+                        alt: img.alt || null,
+                        article: { connect: { id: parseInt(id) } }
+                    }
+                });
+            }
+        }
+    });
+
+    await Promise.all(imagePromises);
+
+    return updatedArticle;
+  }
+
+  ,
     deleteArticle: async (_, args) => await prisma.article.delete({ where: { id: parseInt(args.id) } }),
 
     createCategory: async (_, args) => await prisma.category.create({ data: { name: args.name } }),

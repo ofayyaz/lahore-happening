@@ -13,7 +13,10 @@
     text-align: center; /* Centers the title text */
     color: #333333; /* Dark grey color for text */
     margin-bottom: 1.5rem; /* Space below the title */
-    font-size: 24px; /* Larger font size for title */
+    text-align: center;
+    margin-bottom: 16px;
+    font-size: 24px;  /* Example size, adjust as needed */
+    font-weight: bold;
 }
 
 .formLabel {
