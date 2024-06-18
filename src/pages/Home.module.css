@@ -1,0 +1,26 @@
+/* Home.module.css */
+.container {
+    display: flex;
+    justify-content: space-between;
+    margin: 20px;
+  }
+  
+  .featuredContainer {
+    flex-basis: 60%;
+  }
+  
+  .otherArticlesContainer {
+    flex-basis: 35%;
+    margin-left: 20px;
+  }
+  
+  .articleImage {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .articleTitle {
+    font-size: 1.5rem;
+    color: #333;
+  }
+  

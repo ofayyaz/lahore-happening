@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery,gql } from '@apollo/client';
+import axios from 'axios';
+import styles from './ArticleAdmin.module.css';
 
 const CREATE_ARTICLE = gql`
 mutation CreateArticle($title: String!, $content: String!, $categoryId: Int!, $authorId: Int!, $featured: Boolean!, $published: Boolean!, $images: [ImageInput!]) {
@@ -39,7 +41,7 @@ export default function ArticleAdmin() {
     const [formData, setFormData] = useState({
         title: '',
         content: '',
-        images: [{ imageUrl: '', imageAlt: '' }],
+        images: [],
         categoryId: '',
         authorId: '',
         collectionId: '',
@@ -69,7 +71,7 @@ export default function ArticleAdmin() {
         onCompleted: () => {
             alert('Article added successfully');
             setFormData({
-                title: '', content: '', categoryId: '', authorId: '', featured: false, published: false, images: [{ imageUrl: '', imageAlt: '' }]
+                title: '', content: '', categoryId: '', authorId: '', featured: false, published: false, images: []
             });
         },
         onError: (error) => {
@@ -81,23 +83,36 @@ export default function ArticleAdmin() {
     const handleAddImage = () => {
         setFormData({
             ...formData,
-            images: [...formData.images, { imageUrl: '', imageAlt: '' }]
+            images: [...formData.images, { file: null, imageUrl: '', imageAlt: '' }]
         });
     };
     
     const handleRemoveImage = (index) => {
+        const newImages = formData.images.filter((_, i) => i !== index);
+        setFormData({ ...formData, images: newImages });
+    };
+
+    const handleFileChange = (file, index) => {
         const newImages = [...formData.images];
-        newImages.splice(index, 1);
-        setFormData({
-            ...formData,
-            images: newImages
-        });
+        newImages[index].file = file;
+        newImages[index].imageUrl = URL.createObjectURL(file);
+        setFormData({ ...formData, images: newImages });
     };
     
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const filteredImages = formData.images.filter(image => image.imageUrl.trim() !== '');
         try {
+            const imageUploadPromises = formData.images.filter(img => img.file).map(img => {
+            const formData = new FormData();
+            formData.append('file', img.file);
+            return axios.post('/api/upload', formData);
+            });
+            const imageResponses = await Promise.all(imageUploadPromises);
+            const imageUrls = imageResponses.map(res => ({
+                url: res.data.url,
+                alt: formData.images[index].imageAlt
+            }));
+        
             const categoryId = formData.categoryId ? parseInt(formData.categoryId) : null;
             const authorId = formData.authorId ? parseInt(formData.authorId) : null;
             const collectionId = formData.collectionId ? parseInt(formData.collectionId) : null; // Handle empty string by converting to null
@@ -105,14 +120,11 @@ export default function ArticleAdmin() {
             const variables = {
                 title: formData.title,
                 content: formData.content,
-                categoryId, // Ensure this is either a valid integer or null
-                authorId, // Ensure this is either a valid integer or null
+                categoryId, 
+                authorId, 
                 featured: formData.featured,
                 published: formData.published,
-                images: filteredImages.map(image => ({
-                    url: image.imageUrl,
-                    alt: image.imageAlt || undefined // Use undefined for no alt text
-                })),
+                images: imageUrls,
                 collectionId // This will now be null if empty, which should be acceptable if the field is optional
             };
 
@@ -132,47 +144,43 @@ export default function ArticleAdmin() {
     if (authorsError) return <p>Error loading authors: {authorsError.message}</p>;
 
     return (
-        <>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <h2>Add New Article</h2>
-                <input type="text" name="title" value={formData.title} onChange={handleChange} placeholder="Title" required className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50" /><br/>
-                <textarea name="content" value={formData.content} onChange={handleChange} placeholder="Content" required className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50" /><br/>
-                {formData.images.map((image, index) => (
-                    <div key={index}>
-                        <input type="text" name="imageUrl" value={image.imageUrl} onChange={(e) => handleChange(e, index)} placeholder="Image URL" className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50" /><br/>
-                        <input type="text" name="imageAlt" value={image.imageAlt} onChange={(e) => handleChange(e, index)} placeholder="Image Alt Text" className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50" /><br/>
-                        <button type="button" onClick={() => handleRemoveImage(index)} className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-700">Remove</button>
-                    </div>
+        <form onSubmit={handleSubmit} className={styles.formContainer}>
+            <h2 className={styles.title}>Add New Article</h2>
+            <input type="text" className={styles.inputField} name="title" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} placeholder="Title" required />
+            <textarea className={styles.textAreaField} name="content" value={formData.content} onChange={(e) => setFormData({...formData, content: e.target.value})} placeholder="Content" required />
+            {formData.images.map((image, index) => (
+                <div key={index} className={styles.imageInputContainer}>
+                    <input type="file" onChange={(e) => handleFileChange(e.target.files[0], index)} />
+                    <input type="text" className={styles.imageAltInput} value={image.imageAlt} onChange={(e) => {
+                        const newImages = [...formData.images];
+                        newImages[index].imageAlt = e.target.value;
+                        setFormData({...formData, images: newImages});
+                    }} placeholder="Image Alt Text" />
+                    <button type="button" onClick={() => handleRemoveImage(index)} className={`${styles.button} ${styles.imageRemoveButton}`}>Remove</button>
+                </div>
+            ))}
+            <button type="button" onClick={handleAddImage} className={styles.button}>Add Image</button>
+            <select className={styles.selectField} name="categoryId" value={formData.categoryId} onChange={(e) => setFormData({...formData, categoryId: e.target.value})} required>
+                <option value="">Select a Category</option>
+                {categoriesData?.allCategories.map((category) => (
+                    <option key={category.id} value={category.id}>{category.name}</option>
                 ))}
-
-                <button type="button" onClick={handleAddImage} className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-700">Add Image</button><br/>
-                
-                <select name="categoryId" value={formData.categoryId} onChange={handleChange} required className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50">
-                    <option value="">Select a Category</option>
-                    {categoriesData?.allCategories.map((category) => (
-                        <option key={category.id} value={category.id}>{category.name}</option>
-                    ))}
-                </select>
-                
-                <select name="authorId" value={formData.authorId} onChange={handleChange} required className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50">
-                    <option value="">Select an Author</option>
-                    {authorsData?.allAuthors.map((author) => (
-                        <option key={author.id} value={author.id}>{author.name}</option>
-                    ))}
-                </select><br/> 
-                
-                <label>
-                    <input type="checkbox" name="featured" checked={formData.featured} onChange={handleChange} />
-                    Featured
-                </label><br/>
-                
-                <label>
-                    <input type="checkbox" name="published" checked={formData.published} onChange={handleChange} />
-                    Published
-                </label><br/>
-                <button type="submit" disabled={loading} className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700">Add Article</button>
-            </form>
-        </>
-    )
+            </select>
+            <select className={styles.selectField} name="authorId" value={formData.authorId} onChange={(e) => setFormData({...formData, authorId: e.target.value})} required>
+                <option value="">Select an Author</option>
+                {authorsData?.allAuthors.map((author) => (
+                    <option key={author.id} value={author.id}>{author.name}</option>
+                ))}
+            </select>
+            <label className={styles.checkboxLabel}>
+                <input type="checkbox" name="featured" checked={formData.featured} onChange={(e) => setFormData({...formData, featured: e.target.checked})} />
+                Featured
+            </label>
+            <label className={styles.checkboxLabel}>
+                <input type="checkbox" name="published" checked={formData.published} onChange={(e) => setFormData({...formData, published: e.target.checked})} />
+                Published
+            </label>
+            <button type="submit" disabled={loading} className={styles.button}>Add Article</button>
+        </form>
+    );
 }
