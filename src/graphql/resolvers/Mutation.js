@@ -47,6 +47,18 @@ const Mutation = {
         }
     });
 
+    const currentImages = await prisma.image.findMany({
+      where: { articleId: parseInt(id) }
+    });
+
+    const currentImageIds = currentImages.map(img => img.id);
+    const newImageIds = images.filter(img => img.id).map(img => parseInt(img.id));
+    const imagesToDelete = currentImageIds.filter(id => !newImageIds.includes(id));
+
+    const deletePromises = imagesToDelete.map(imgId => 
+      prisma.image.delete({ where: { id: imgId } })
+    );
+
     const imagePromises = images.map(async img => {
         if (img.id) {
             // Update existing images
@@ -72,7 +84,7 @@ const Mutation = {
         }
     });
 
-    await Promise.all(imagePromises);
+    await Promise.all([...deletePromises, ...imagePromises]);
 
     return updatedArticle;
   }

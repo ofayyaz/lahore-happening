@@ -52,21 +52,6 @@ export default function ArticleAdmin() {
     const { data: categoriesData, loading: categoriesLoading, error: categoriesError } = useQuery(GET_CATEGORIES);
     const { data: authorsData, loading: authorsLoading, error: authorsError } = useQuery(GET_AUTHORS);
 
-    const handleChange = (e,index = null) => {
-        const { name, value, type, checked } = e.target;
-        if (name.includes("imageUrl") || name.includes("imageAlt")) {
-            const newImages = [...formData.images];
-            const field = name.includes("imageUrl") ? "imageUrl" : "imageAlt";
-            newImages[index][field] = value;
-            setFormData({ ...formData, images: newImages });
-        } else {
-            setFormData({ 
-            ...formData, 
-            [name]: type === 'checkbox' ? checked : value 
-        });}
-    };
-
-
     const [createArticle, { data, loading, error }] = useMutation(CREATE_ARTICLE, {
         onCompleted: () => {
             alert('Article added successfully');
@@ -102,15 +87,16 @@ export default function ArticleAdmin() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const imageUploadPromises = formData.images.filter(img => img.file).map(img => {
-            const formData = new FormData();
-            formData.append('file', img.file);
-            return axios.post('/api/upload', formData);
-            });
+            const imageUploadPromises = formData.images.filter(img => img.file).map( (img, index) => {
+                const formData = new FormData();
+                formData.append('file', img.file);
+                return axios.post('/api/upload', formData).then(response => ({ response: response, index: index }));
+                });
             const imageResponses = await Promise.all(imageUploadPromises);
+            console.log(imageResponses);
             const imageUrls = imageResponses.map(res => ({
-                url: res.data.url,
-                alt: formData.images[index].imageAlt
+                url: res.response.data[0].url,
+                alt: formData.images[res.index].imageAlt
             }));
         
             const categoryId = formData.categoryId ? parseInt(formData.categoryId) : null;

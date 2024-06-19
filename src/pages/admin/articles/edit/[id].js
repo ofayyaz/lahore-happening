@@ -6,7 +6,7 @@ import Link from 'next/link';
 import styles from './EditArticle.module.css';
 import ArticleForm from '../../../../components/adminForms/ArticleForm';
 import ImageManager from '../../../../components/adminForms/ImageManager';
-
+import axios from 'axios';
 
 const GET_ARTICLE = gql`
  query GetArticleById($id: Int!) {
@@ -32,7 +32,6 @@ const GET_ARTICLE = gql`
  }
 `;
 
-
 const GET_CATEGORIES = gql`
  query GetCategories {
    allCategories {
@@ -41,7 +40,6 @@ const GET_CATEGORIES = gql`
    }
  }
 `;
-
 
 const GET_AUTHORS = gql`
  query GetAuthors {
@@ -52,9 +50,6 @@ const GET_AUTHORS = gql`
  }
 `;
 
-
-
-
 const UPDATE_ARTICLE = gql`
  mutation UpdateArticle($id: Int!, $title: String!, $content: String!, $categoryId: Int!, $authorId: Int!, $featured: Boolean!, $published: Boolean!, $images: [ImageInput!]) {
    updateArticle(id: $id, title: $title, content: $content, categoryId: $categoryId, authorId: $authorId, featured: $featured, published: $published, images: $images) {
@@ -64,32 +59,30 @@ const UPDATE_ARTICLE = gql`
  }
 `;
 
-
 export default function EditArticle() {
    const router = useRouter();
    const { id } = router.query;
    const articleId = parseInt(id);
-
-
+   const [isModified, setIsModified] = useState(false);
    const { data, loading, error } = useQuery(GET_ARTICLE, {
        variables: { id: articleId },
        skip: !id
    });
-
    const { data: categoriesData, loading: categoriesLoading, error: categoriesError } = useQuery(GET_CATEGORIES);
    const { data: authorsData, loading: authorsLoading, error: authorsError } = useQuery(GET_AUTHORS);
-   
+   const setImages = (newImages) => {
+    setFormData({ ...formData, images: newImages });
+    };
 
    const [formData, setFormData] = useState({
-       title: '',
-       content: '',
-       categoryId: '',
-       authorId: '',
-       featured: false,
-       published: false,
-       images: []
+      title: '',
+      content: '',
+      categoryId: '',
+      authorId: '',
+      featured: false,
+      published: false,
+      images: []
    });
-
 
    useEffect(() => {
        if (data && data.getArticleById) {
@@ -108,14 +101,13 @@ export default function EditArticle() {
        }
    }, [data]);
 
-
    const [updateArticle, { loading: updating, error: updateError }] = useMutation(UPDATE_ARTICLE, {
        onCompleted: () => alert('Article updated successfully')
    });
 
-
    const handleChange = (e, index) => {
        const { name, value, type, checked } = e.target;
+       setIsModified(true);
        if (type === 'checkbox') {
            setFormData({ ...formData, [name]: checked });
        } else if (name === "imageUrl" || name === "imageAlt") {
@@ -128,42 +120,52 @@ export default function EditArticle() {
        }
    };
 
-
-   const handleSubmit = (e) => {
-       e.preventDefault();
-       const variables = {
-           id: articleId,
-           title: formData.title,
-           content: formData.content,
-           categoryId: parseInt(formData.categoryId),
-           authorId: parseInt(formData.authorId),
-           featured: formData.featured,
-           published: formData.published,
-           images: formData.images.map(img => ({
-               url: img.imageUrl,
-               alt: img.imageAlt || ''
-           }))
-       };
-
-       updateArticle({ variables }).then(() => {
-            console.log("Update completed");
-        }).catch(error => {
-            console.error("Update error:", error);
+   const handleSubmit = async (e) => {
+      e.preventDefault();
+      const imageUploadPromises = formData.images.filter(img => img.file).map((img, index) => {
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', img.file);
+        return axios.post('/api/upload', uploadFormData).then(response => ({ url: response.data.url, alt: img.imageAlt }));
+      });
+      const uploadedImages = await Promise.all(imageUploadPromises);
+      const updatedImages = formData.images.filter(img => !img.file).map(img => ({
+        url: img.imageUrl,
+        alt: img.imageAlt
+      }));
+      const allImages = [...uploadedImages, ...updatedImages];
+      const variables = {
+        id: articleId,
+        title: formData.title,
+        content: formData.content,
+        categoryId: parseInt(formData.categoryId),
+        authorId: parseInt(formData.authorId),
+        featured: formData.featured,
+        published: formData.published,
+        images: allImages
+      };
+      await updateArticle({ variables }).then(() => {
+        setFormData({
+          ...formData,
+          images: response.data.updateArticle.images.map(img => ({
+              imageUrl: img.url,
+              imageAlt: img.alt
+          }))
         });
-   };
-
-
+        setIsModified(false);
+      }).catch(error => {
+        console.error("Update error:", error);
+      }); 
+    }
+   
    const handleDeleteImage = (index) => {
        const updatedImages = formData.images.filter((_, idx) => idx !== index);
        setFormData({ ...formData, images: updatedImages });
    };
   
-   // Include a function to handle adding new images
    const handleAddImage = () => {
-       const newImage = { imageUrl: '', imageAlt: '' };
-       setFormData({ ...formData, images: [...formData.images, newImage] });
+      const newImage = { file: null, imageUrl: '', imageAlt: '' };
+      setFormData({ ...formData, images: [...formData.images, newImage] });
    };
-
 
    if (categoriesLoading || authorsLoading) return <p>Loading categories and authors...</p>;
    if (categoriesError || authorsError) {
@@ -171,19 +173,16 @@ export default function EditArticle() {
        return <p>Error loading categories or authorrs!</p>;
    }
 
-
    if (loading) return <p>Loading...</p>;
    if (error) return <p>Error: {error.message}</p>;
 
-
    return (
-
         <div className={styles.container}>
             <h1 className={styles.title}>Edit Article</h1>
             <form onSubmit={handleSubmit} className="space-y-6">
                 <ArticleForm formData={formData} onChange={handleChange} categoriesData={categoriesData} authorsData={authorsData} />
-                <ImageManager images={formData.images} onImageChange={handleChange} onAddImage={handleAddImage} onDeleteImage={handleDeleteImage} />
-                <button type="submit" disabled={updating} className={styles.submitButton}>Save Changes</button>
+                <ImageManager images={formData.images} setImages={setImages} onImageChange={handleChange} onAddImage={handleAddImage} onDeleteImage={handleDeleteImage} />
+                <button type="submit" disabled={!isModified || updating} className={styles.submitButton}>Save Changes</button>
             </form>
             <Link href="/admin/articles" className={styles.link}>Back to articles</Link>
         </div>
