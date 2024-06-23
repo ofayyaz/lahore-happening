@@ -42,3 +42,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+.deleteButton {
+    background-color: red;
+    color: white;
+    margin-left: 10px;
+  }

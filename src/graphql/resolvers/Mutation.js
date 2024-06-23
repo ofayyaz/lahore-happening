@@ -27,6 +27,8 @@ const Mutation = {
             create: imageOperations,  // This should handle the creation of related images.
           },
         collection: collectionId ? { connect: { id: parseInt(collectionId) } } : undefined
+      }, include: {
+        images: true // Ensure to include this line to fetch the related images in the response
       }
     });
    
@@ -34,7 +36,6 @@ const Mutation = {
 
   updateArticle: async (_, args,  ) => {
     const { id, title, content, categoryId, authorId, featured, published, images } = args;
-
     const updatedArticle = await prisma.article.update({
         where: { id: parseInt(id) },
         data: {
@@ -46,47 +47,44 @@ const Mutation = {
             author: { connect: { id: parseInt(authorId) } },
         }
     });
-
-    const currentImages = await prisma.image.findMany({
+    const initialImages = await prisma.image.findMany({
       where: { articleId: parseInt(id) }
     });
-
-    const currentImageIds = currentImages.map(img => img.id);
-    const newImageIds = images.filter(img => img.id).map(img => parseInt(img.id));
-    const imagesToDelete = currentImageIds.filter(id => !newImageIds.includes(id));
-
-    const deletePromises = imagesToDelete.map(imgId => 
-      prisma.image.delete({ where: { id: imgId } })
-    );
-
-    const imagePromises = images.map(async img => {
-        if (img.id) {
-            // Update existing images
-            return prisma.image.update({
-                where: { id: img.id },
-                data: { url: img.url, alt: img.alt || null }
-            });
-        } else {
-            // Check if the image URL already exists to avoid duplicates
-            const existingImage = await prisma.image.findFirst({
-                where: { url: img.url }
-            });
-            if (!existingImage) {
-                // Create new image only if it does not exist
-                return prisma.image.create({
-                    data: {
-                        url: img.url,
-                        alt: img.alt || null,
-                        article: { connect: { id: parseInt(id) } }
-                    }
-                });
-            }
+    
+    const initialImagesIds = initialImages.map(img=>img.id).filter(id=>id!==undefined);
+    const newImages = images.filter(img=> !img.id);
+    const currentImageIds = images.map(img => img.id).filter(id=> id!==undefined);
+    const imagesToDeleteIds = initialImagesIds.filter(id => !currentImageIds.includes(id)); 
+    const existingImages = images.filter(img => img.id);
+    await Promise.all(imagesToDeleteIds.map(imgId => prisma.image.delete({ where: { id: imgId } })));
+    
+    await Promise.all(existingImages.map(img => {
+      return prisma.image.update({
+        where: { id: img.id },
+        data: {
+          url: img.url,
+          alt: img.alt || null
         }
-    });
-
-    await Promise.all([...deletePromises, ...imagePromises]);
-
-    return updatedArticle;
+      });
+    }));
+    await Promise.all(newImages.map(img => {
+      return prisma.image.create({
+        data: {
+          url: img.url,
+          alt: img.alt || null,
+          article: { connect: { id: parseInt(id) } }
+        }
+      });  
+    }
+  ));
+  return prisma.article.findUnique({
+    where: { id: parseInt(id) },
+    include: {
+        category: true,
+        author: true,
+        images: true
+    }
+  });
   }
 
   ,
@@ -134,7 +132,17 @@ const Mutation = {
       where: { id: parseInt(args.id) },
       data: args,
     }),
-    deleteImage: async (_, args) => await prisma.image.delete({ where: { id: parseInt(args.id) } }),
+    deleteImage: async (_, { id }) => {
+      try {
+        const deletedImage = await prisma.image.delete({
+          where: { id },
+        });
+        return deletedImage;
+      } catch (error) {
+        console.error("Error deleting image:", error);
+        throw new Error("Failed to delete image");
+      }
+    },
 
     createCollection: async (_, args) => await prisma.collection.create({
       data: {

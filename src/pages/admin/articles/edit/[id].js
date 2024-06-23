@@ -1,4 +1,3 @@
-// pages/admin/articles/edit/[id].js
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useQuery, useMutation, gql } from '@apollo/client';
@@ -25,8 +24,9 @@ const GET_ARTICLE = gql`
        name
      }
      images {
-       url
-       alt
+      id
+      url
+      alt
      }
    }
  }
@@ -52,10 +52,34 @@ const GET_AUTHORS = gql`
 
 const UPDATE_ARTICLE = gql`
  mutation UpdateArticle($id: Int!, $title: String!, $content: String!, $categoryId: Int!, $authorId: Int!, $featured: Boolean!, $published: Boolean!, $images: [ImageInput!]) {
-   updateArticle(id: $id, title: $title, content: $content, categoryId: $categoryId, authorId: $authorId, featured: $featured, published: $published, images: $images) {
-     id
-     title
-   }
+    updateArticle(id: $id, title: $title, content: $content, categoryId: $categoryId, authorId: $authorId, featured: $featured, published: $published, images: $images) {
+        id
+        title
+        content
+        published
+        featured
+        category {
+          id
+          name
+        }
+        author {
+          id
+          name
+        }
+        images {
+          id
+          url
+          alt
+        }
+    }
+ }
+`;
+
+const DELETE_IMAGE = gql`
+ mutation DeleteImage($id: Int!) {
+    deleteImage(id: $id) {
+        id
+    }
  }
 `;
 
@@ -64,16 +88,15 @@ export default function EditArticle() {
    const { id } = router.query;
    const articleId = parseInt(id);
    const [isModified, setIsModified] = useState(false);
+   const [isLoading, setIsLoading] = useState(false);
    const { data, loading, error } = useQuery(GET_ARTICLE, {
        variables: { id: articleId },
        skip: !id
    });
    const { data: categoriesData, loading: categoriesLoading, error: categoriesError } = useQuery(GET_CATEGORIES);
    const { data: authorsData, loading: authorsLoading, error: authorsError } = useQuery(GET_AUTHORS);
-   const setImages = (newImages) => {
-    setFormData({ ...formData, images: newImages });
-    };
-
+   const [deleteImage] = useMutation(DELETE_IMAGE);
+   const [initialImages, setInitialImages] = useState([]);
    const [formData, setFormData] = useState({
       title: '',
       content: '',
@@ -86,91 +109,163 @@ export default function EditArticle() {
 
    useEffect(() => {
        if (data && data.getArticleById) {
-           setFormData({
-               title: data.getArticleById.title,
-               content: data.getArticleById.content,
-               categoryId: data.getArticleById.category.id,
-               authorId: data.getArticleById.author.id,
-               featured: data.getArticleById.featured,
-               published: data.getArticleById.published,
-               images: data.getArticleById.images.map(img => ({
-                   imageUrl: img.url,
-                   imageAlt: img.alt
-               }))
-           });
+          const initialImagesData = data.getArticleById.images.map(img => ({
+            id: img.id, // Ensure id is included for client-side logic
+            imageUrl: img.url,
+            imageAlt: img.alt
+          }));
+          setFormData({
+              title: data.getArticleById.title,
+              content: data.getArticleById.content,
+              categoryId: data.getArticleById.category.id,
+              authorId: data.getArticleById.author.id,
+              featured: data.getArticleById.featured,
+              published: data.getArticleById.published,
+              images: initialImagesData
+          });
+          setInitialImages(initialImagesData);
        }
    }, [data]);
+
+   useEffect(() => {
+    // Cleanup function to revoke all blob URLs
+    return () => {
+      formData.images.forEach(img => {
+        if (img.imageUrl && img.imageUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(img.imageUrl);
+        }
+      });
+    };
+  }, [formData.images]); 
+
+  useEffect(() => {
+    console.log("Current formData.images:", formData.images);
+}, [formData.images]); 
+    
 
    const [updateArticle, { loading: updating, error: updateError }] = useMutation(UPDATE_ARTICLE, {
        onCompleted: () => alert('Article updated successfully')
    });
 
-   const handleChange = (e, index) => {
+  const handleFileChange = (e, index) => {
+    setIsModified(true);
+    const file = e.target.files[0];
+    if (!file) return;
+
+    /*if (formData.images[index] && formData.images[index].url.startsWith('blob:')) {
+      URL.revokeObjectURL(formData.images[index].url);
+    }*/
+
+    setFormData(oldFormData => {
+      const newImages = [...oldFormData.images]; // Create a shallow copy of the images array
+      newImages[index] = {
+          ...newImages[index],
+          file: file,
+          imageUrl: URL.createObjectURL(file)
+      };
+      return { ...oldFormData, images: newImages };
+    });
+    console.log(formData.images)
+  }
+    
+   const handleFormChange = (e) => {
        const { name, value, type, checked } = e.target;
        setIsModified(true);
        if (type === 'checkbox') {
            setFormData({ ...formData, [name]: checked });
-       } else if (name === "imageUrl" || name === "imageAlt") {
-           const newImages = [...formData.images];
-           const field = name === "imageUrl" ? "imageUrl" : "imageAlt";
-           newImages[index][field] = value;
-           setFormData({ ...formData, images: newImages });
-       } else {
+       } else if (name === "categoryId" || name === "authorId") {
+        setFormData({ ...formData, [name]: parseInt(value) });
+      } else {
            setFormData({ ...formData, [name]: value });
        }
    };
 
-   const handleSubmit = async (e) => {
-      e.preventDefault();
-      const imageUploadPromises = formData.images.filter(img => img.file).map((img, index) => {
-        const uploadFormData = new FormData();
-        uploadFormData.append('file', img.file);
-        return axios.post('/api/upload', uploadFormData).then(response => ({ url: response.data.url, alt: img.imageAlt }));
-      });
-      const uploadedImages = await Promise.all(imageUploadPromises);
-      const updatedImages = formData.images.filter(img => !img.file).map(img => ({
-        url: img.imageUrl,
-        alt: img.imageAlt
-      }));
-      const allImages = [...uploadedImages, ...updatedImages];
-      const variables = {
-        id: articleId,
-        title: formData.title,
-        content: formData.content,
-        categoryId: parseInt(formData.categoryId),
-        authorId: parseInt(formData.authorId),
-        featured: formData.featured,
-        published: formData.published,
-        images: allImages
-      };
-      await updateArticle({ variables }).then(() => {
-        setFormData({
-          ...formData,
-          images: response.data.updateArticle.images.map(img => ({
-              imageUrl: img.url,
-              imageAlt: img.alt
-          }))
+   const handleAltChange = (e, index) => {
+    setIsModified(true);
+    const altText = e.target.value;
+    setFormData(oldFormData => {
+        const newImages = oldFormData.images.map((img, idx) => {
+            if (idx === index) {
+                return {...img, imageAlt: altText};
+            }
+            return img;
         });
-        setIsModified(false);
-      }).catch(error => {
-        console.error("Update error:", error);
-      }); 
-    }
-   
-   const handleDeleteImage = (index) => {
-       const updatedImages = formData.images.filter((_, idx) => idx !== index);
-       setFormData({ ...formData, images: updatedImages });
+        return {...oldFormData, images: newImages};
+    });
+  };
+
+  const handleDeleteImage = (index) => {
+    setIsModified(true);
+    const updatedImages = formData.images.filter((_, idx) => idx !== index);
+    setFormData({ ...formData, images: updatedImages });
    };
   
    const handleAddImage = () => {
-      const newImage = { file: null, imageUrl: '', imageAlt: '' };
+      setIsModified(true);
+      const newImage = { id: null, file: null, imageUrl: null, imageAlt: null };
       setFormData({ ...formData, images: [...formData.images, newImage] });
    };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try { 
+        console.log("handle submit all images:", formData.images)
+        const imageUploadPromises = formData.images.filter(img => img.file).map((img) => {
+            const uploadFormData = new FormData();
+            uploadFormData.append('file', img.file);
+            return axios.post('/api/upload', uploadFormData).then(response => {
+              return { url: response.data[0].url, alt: img.imageAlt };
+          });
+        });
+        
+        const uploadedImages = await Promise.all(imageUploadPromises);
+        const existingImages = formData.images.filter(img => !img.file && img.id).map(img => ({
+          id: img.id,
+          url: img.imageUrl,
+          alt: img.imageAlt
+        }));
+        const allImages = [...uploadedImages, ...existingImages];
+        const uniqueImages = allImages.filter((img, index, self) =>
+            index === self.findIndex((t) => t.url === img.url)
+        );
+        const variables = {
+            id: articleId,
+            title: formData.title,
+            content: formData.content,
+            categoryId: parseInt(formData.categoryId),
+            authorId: parseInt(formData.authorId),
+            featured: formData.featured,
+            published: formData.published,
+            images: allImages.map(img => ({ url: img.url, alt: img.alt })) 
+        };
+        const response = await updateArticle({ variables });
+        if (response.data && response.data.updateArticle) {
+            setFormData(oldFormData => ({
+                ...oldFormData,
+                images: response.data.updateArticle.images.map(img => ({
+                  id: img.id,
+                  imageUrl: img.imageUrl,
+                  imageAlt: img.imageAlt
+                }))
+            }));
+            setIsModified(false);
+        } else {
+            console.error("No article data returned from the mutation.");
+        }
+    } catch (error) {
+        console.error("Update error:", error);
+    } finally {
+        setIsLoading(false);
+    }
+};
+   
+   
 
    if (categoriesLoading || authorsLoading) return <p>Loading categories and authors...</p>;
    if (categoriesError || authorsError) {
        console.error(categoriesError || authorsError);
-       return <p>Error loading categories or authorrs!</p>;
+       return <p>Error loading categories or authors!</p>;
    }
 
    if (loading) return <p>Loading...</p>;
@@ -180,15 +275,11 @@ export default function EditArticle() {
         <div className={styles.container}>
             <h1 className={styles.title}>Edit Article</h1>
             <form onSubmit={handleSubmit} className="space-y-6">
-                <ArticleForm formData={formData} onChange={handleChange} categoriesData={categoriesData} authorsData={authorsData} />
-                <ImageManager images={formData.images} setImages={setImages} onImageChange={handleChange} onAddImage={handleAddImage} onDeleteImage={handleDeleteImage} />
-                <button type="submit" disabled={!isModified || updating} className={styles.submitButton}>Save Changes</button>
+                <ArticleForm formData={formData} onChange={handleFormChange} categoriesData={categoriesData} authorsData={authorsData} />
+                <ImageManager images={formData.images} onFileChange={handleFileChange} onAltChange={handleAltChange} onAddImage={handleAddImage} onDeleteImage={handleDeleteImage} />
+                <button type="submit" disabled={!isModified || updating || isLoading} className={styles.submitButton}>Save Changes</button>
             </form>
             <Link href="/admin/articles" className={styles.link}>Back to articles</Link>
         </div>
     );
-   
 }
-
-
-

@@ -93,7 +93,6 @@ export default function ArticleAdmin() {
                 return axios.post('/api/upload', formData).then(response => ({ response: response, index: index }));
                 });
             const imageResponses = await Promise.all(imageUploadPromises);
-            console.log(imageResponses);
             const imageUrls = imageResponses.map(res => ({
                 url: res.response.data[0].url,
                 alt: formData.images[res.index].imageAlt
