@@ -13,6 +13,8 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
+import Snackbar from '@mui/material/Snackbar';
+import MuiAlert from '@mui/material/Alert';
 
 const GET_ALL_ARTICLES = gql`
   query GetAllArticles {
@@ -22,7 +24,6 @@ const GET_ALL_ARTICLES = gql`
       content
       published
       featured
-      
       images {
         url
         alt
@@ -48,12 +49,18 @@ const UPDATE_ARTICLE = gql`
   }
 `;
 
+function Alert(props) {
+    return <MuiAlert elevation={6} variant="filled" {...props} />;
+}
+
 export default function ArticlesAdmin() {
     const { data, loading, error } = useQuery(GET_ALL_ARTICLES);
     const [searchTerm, setSearchTerm] = useState('');
     const [deleteArticle] = useMutation(DELETE_ARTICLE);
     const [selectedArticle, setSelectedArticle] = useState(null);
     const [open, setOpen] = useState(false);
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [snackbarMessage, setSnackbarMessage] = useState('');
 
 
     if (loading) return <p>Loading...</p>;
@@ -68,6 +75,15 @@ export default function ArticlesAdmin() {
         article.content.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const handleSnackbarClose = () => {
+        setSnackbarOpen(false);
+    };
+    
+    const showSnackbar = (message) => {
+        setSnackbarMessage(message);
+        setSnackbarOpen(true);
+    };
+
     const handleClickOpen = (article) => {
         setSelectedArticle(article);
         setOpen(true);
@@ -79,10 +95,15 @@ export default function ArticlesAdmin() {
     };
 
     const handleDelete = async () => {
-        await deleteArticle({ variables: { id: selectedArticle.id } });
-        setOpen(false);
-        // Refetch articles or update cache to remove the deleted article from the list
-        window.location.reload();
+        try {
+            await deleteArticle({ variables: { id: parseInt(selectedArticle.id) } });
+            setOpen(false);
+            showSnackbar('Article deleted successfully');
+            window.location.reload();
+        } catch (error) {
+            console.error(error);
+            showSnackbar('Error deleting article');
+        }
     };
 
     return (

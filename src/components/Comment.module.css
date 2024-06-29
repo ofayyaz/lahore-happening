@@ -1,0 +1,20 @@
+.comment {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #f9f9f9;
+  }
+  
+  .commentHeader {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .commentContent {
+    margin-bottom: 10px;
+  }
+  
+  .commentChildren {
+    margin-top: 10px;
+  }
+  

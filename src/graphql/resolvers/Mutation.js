@@ -88,36 +88,64 @@ const Mutation = {
   }
 
   ,
-    deleteArticle: async (_, args) => await prisma.article.delete({ where: { id: parseInt(args.id) } }),
+  deleteArticle: async (_, args) => {
+    const articleId = parseInt(args.id);
+    await prisma.image.deleteMany({
+      where: {
+        articleId: articleId,
+      },
+    });
+    const deletedArticle = await prisma.article.delete({
+      where: {
+        id: articleId,
+      },
+    });
+    return deletedArticle;
+  },
 
-    createCategory: async (_, args) => await prisma.category.create({ data: { name: args.name } }),
-    updateCategory: async (_, args) => await prisma.category.update({
-      where: { id: parseInt(args.id) },
-      data: { name: args.name },
-    }),
-    deleteCategory: async (_, args) => await prisma.category.delete({ where: { id: parseInt(args.id) } }),
+  createCategory: async (_, args) => await prisma.category.create({ data: { name: args.name } }),
+  updateCategory: async (_, args) => await prisma.category.update({
+    where: { id: parseInt(args.id) },
+    data: { name: args.name },
+  }),
+  deleteCategory: async (_, args) => await prisma.category.delete({ where: { id: parseInt(args.id) } }),
 
-    createAuthor: async (_, args) => await prisma.author.create({
-      data: {
-        name: args.name,
-        bio: args.bio,
+  createAuthor: async (_, args) => await prisma.author.create({
+    data: {
+      name: args.name,
+      bio: args.bio,
+    }
+  }),
+  updateAuthor: async (_, args) => await prisma.author.update({
+    where: { id: parseInt(args.id) },
+    data: args,
+  }),
+  deleteAuthor: async (_, args) => await prisma.author.delete({ where: { id: parseInt(args.id) } }),
+
+  createComment: async (_, { content, articleId, userId, parentId },) => {
+    if (parentId) {
+      const parentComment = await prisma.comment.findUnique({
+        where: { id: parentId },
+        include: { parent: true }
+      });
+
+      if (parentComment.parentId) {
+        throw new Error('Replies to replies are not allowed.');
       }
-    }),
-    updateAuthor: async (_, args) => await prisma.author.update({
-      where: { id: parseInt(args.id) },
-      data: args,
-    }),
-    deleteAuthor: async (_, args) => await prisma.author.delete({ where: { id: parseInt(args.id) } }),
-
-    createComment: async (_, args) => await prisma.comment.create({
+    }
+    return await prisma.comment.create({
       data: {
-        text: args.text,
-        articleId: args.articleId,
+        content,
+        articleId,
+        userId,
+        parentId
       }
-    }),
+    });
+  },
+
     updateComment: async (_, args) => await prisma.comment.update({
       where: { id: parseInt(args.id) },
-      data: { text: args.text },
+      data: { content: args.content },
     }),
     deleteComment: async (_, args) => await prisma.comment.delete({ where: { id: parseInt(args.id) } }),
 

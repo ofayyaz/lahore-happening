@@ -7,7 +7,7 @@ const Query = {
     allArticles: async () => await prisma.article.findMany({
       include: {
         images: true,    // Include all related images
-        comments: true   // Include all related comments
+        comments: false   // Include all related comments
       }
     }),
     allCategories: async (_, args) => await prisma.category.findMany(),
@@ -18,11 +18,21 @@ const Query = {
     
     getArticleById: async (_, { id }) => await prisma.article.findUnique({ where: { id: parseInt(id) } , include: {
       images: true,      // Fetch all related images
-      comments: true,    // Fetch all related comments
       category: true,    // Fetch the associated category
       author: true,      // Fetch the associated author
       collection: true   // Fetch the associated collection, if any
     }}),
+
+    getCommentsByArticleId: async (_, { articleId },) => {
+      const comments = await prisma.comment.findMany({
+        where: { id: parseInt(articleId)} ,
+        include: {
+          user: true
+        }    
+      });
+      return comments || [];
+    },
+
     getCategoryById: async (_, { id }) => await prisma.category.findUnique({ where: { id: parseInt(id) } }),
     getAuthorById: async (_, { id }) => await prisma.author.findUnique({ where: { id: parseInt(id) } }),
     getCommentById: async (_, { id }) => await prisma.comment.findUnique({ where: { id: parseInt(id) } }),

@@ -18,6 +18,8 @@ type Query {
   getImageById(id: Int!): Image
   getCollectionById(id: Int!): Collection
 
+  getCommentsByArticleId(articleId: Int!): [Comment!]!
+
   testArticleModel: String
   testContext: String
 
@@ -52,7 +54,7 @@ type Mutation {
     images: [ImageInput!]  # Support image input on update
   ): Article!
 
-  deleteArticle(id: ID!): Article!
+  deleteArticle(id: Int!): Article!
 
   # Category mutations
   createCategory(name: String!): Category!
@@ -65,19 +67,19 @@ type Mutation {
   deleteAuthor(id: Int!): Author!
 
   # Comment mutations
-  createComment(text: String!, articleId: ID!): Comment!
-  updateComment(id: Int!, text: String!): Comment!
+  createComment(content: String!, articleId: Int!): Comment!
+  updateComment(id: Int!, content: String!): Comment!
   deleteComment(id: Int!): Comment!
 
   # Image mutations
-  createImage(url: String!, articleId: ID!, alt: String): Image!
+  createImage(url: String!, articleId: Int!, alt: String): Image!
   updateImage(id: Int!, url: String, alt: String): Image!
   deleteImage(id: Int!): Image!
 
   # Collection mutations
   createCollection(title: String!, description: String): Collection!
-  updateCollection(id: ID!, title: String, description: String): Collection!
-  deleteCollection(id: ID!): Collection!
+  updateCollection(id: Int!, title: String, description: String): Collection!
+  deleteCollection(id: Int!): Collection!
 }
 
 type Article {
@@ -92,7 +94,7 @@ type Article {
   categoryId: Int!
   author: Author!
   authorId: Int!
-  comments: [Comment]
+  comments: [Comment!]
   images: [Image!]
   collection: Collection
   collectionId: Int
@@ -113,10 +115,15 @@ type Author {
 
 type Comment {
   id: Int!
-  text: String!
-  createdAt: String!
+  content: String!
+  createdAt: DateTime!
   article: Article!
   articleId: Int!
+  user: User!
+  userId: Int!
+  parent: Comment
+  parentId: Int
+  children: [Comment!]
 }
 
 type Image {
@@ -132,6 +139,13 @@ type Collection {
   title: String!
   description: String
   articles: [Article!]!
+}
+
+type User {
+  id: Int!
+  name: String!
+  email: String!
+  comment: [Comment!]
 }
 
 scalar DateTime

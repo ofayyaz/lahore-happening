@@ -31,6 +31,13 @@ model Category {
   articles Article[]
 }
 
+model User {
+  id        Int   @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  comments  Comment[]
+}
+
 model Author {
   id       Int       @id @default(autoincrement())
   name     String
@@ -40,10 +47,15 @@ model Author {
 
 model Comment {
   id        Int      @id @default(autoincrement())
-  text      String
+  content   String
   createdAt DateTime @default(now())
   articleId Int
   article   Article  @relation(fields: [articleId], references: [id])
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  parentId  Int?     // Nullable field to store parent comment ID
+  parent    Comment? @relation("CommentToComment", fields: [parentId], references: [id])
+  children  Comment[] @relation("CommentToComment")
 }
 
 model Image {
