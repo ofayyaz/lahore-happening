@@ -33,9 +33,13 @@ model Category {
 
 model User {
   id        Int   @id @default(autoincrement())
+  displayName String
   email     String   @unique
-  password  String
+  photoURL    String?
+  provider    String
+  createdAt   DateTime @default(now())
   comments  Comment[]
+  likes       Like[]  
 }
 
 model Author {
@@ -56,6 +60,19 @@ model Comment {
   parentId  Int?     // Nullable field to store parent comment ID
   parent    Comment? @relation("CommentToComment", fields: [parentId], references: [id])
   children  Comment[] @relation("CommentToComment")
+  likeCount Int      @default(0)
+  likes     Like[]
+}
+
+model Like {
+  id        Int      @id @default(autoincrement())
+  commentId Int
+  comment   Comment  @relation(fields: [commentId], references: [id])
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId]) // Ensure a user can like a comment only once
 }
 
 model Image {

@@ -1,0 +1,88 @@
+/* EditArticle.module.css */
+
+.container {
+    max-width: 800px; /* Limits the maximum width of the container */
+    margin: 2rem auto; /* Centers the container and adds vertical margin */
+    padding: 2rem; /* Padding inside the container */
+    background: #ffffff; /* Background color of the form */
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Subtle shadow for depth */
+}
+
+.title {
+    text-align: center; /* Centers the title text */
+    color: #333333; /* Dark grey color for text */
+    margin-bottom: 1.5rem; /* Space below the title */
+    text-align: center;
+    margin-bottom: 16px;
+    font-size: 24px;  /* Example size, adjust as needed */
+    font-weight: bold;
+}
+
+.formLabel {
+    display: block; /* Ensures the label takes the full width */
+    margin-bottom: 0.5rem; /* Space below each label */
+    color: #444444; /* Slightly darker text color for labels */
+    font-size: 16px; /* Readable text size */
+}
+
+.inputField,
+.textAreaField,
+.selectField {
+    width: 100%; /* Full width to fill container */
+    padding: 10px 15px; /* Padding inside the fields */
+    border: 1px solid #ccc; /* Light grey border */
+    border-radius: 4px; /* Rounded borders for the input fields */
+    font-size: 16px; /* Adequate font size for readability */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); /* Inner shadow for depth */
+}
+
+.inputField:focus,
+.textAreaField:focus,
+.selectField:focus {
+    border-color: #0056b3; /* Blue border on focus */
+    outline: none; /* Removes the default focus outline */
+    box-shadow: 0 0 0 2px rgba(0,86,179,0.2); /* Adds a light blue halo around focused field */
+}
+
+.checkboxLabel {
+    margin: 1rem 0; /* Vertical spacing for checkbox sections */
+    display: block; /* Ensures label uses full width for easier clicking */
+    cursor: pointer; /* Indicates the label is clickable */
+}
+
+.checkboxInput {
+    margin-right: 0.5rem; /* Space between the checkbox and label text */
+}
+
+.submitButton {
+    display: block; /* Makes the button block level */
+    width: 100%; /* Full width button */
+    padding: 12px 20px; /* Padding for comfort */
+    margin-top: 1rem; /* Space above the button */
+    background-color: #007bff; /* Bright blue background */
+    color: white; /* White text */
+    border: none; /* No border */
+    border-radius: 4px; /* Rounded corners */
+    font-size: 18px; /* Larger text for the button */
+    cursor: pointer; /* Indicates it is clickable */
+    transition: background-color 0.3s; /* Smooth transition for hover effect */
+}
+
+.submitButton:hover,
+.submitButton:disabled {
+    background-color: #0056b3; /* Darker blue on hover and when disabled */
+}
+
+.link {
+    display: block; /* Block level to occupy full width */
+    text-align: center; /* Center aligns the link */
+    margin-top: 1.5rem; /* Space above the link */
+    font-size: 16px; /* Adequate font size */
+    color: #007bff; /* Blue color to indicate interactiveness */
+    text-decoration: none; /* No underline */
+}
+
+.link:hover {
+    text-decoration: underline; /* Underline on hover for emphasis */
+}

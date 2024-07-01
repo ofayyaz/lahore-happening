@@ -1,0 +1,83 @@
+.container {
+    border: 1px solid #ccc;
+    padding: 20px;
+    width: 300px;
+    margin: 0 auto;
+    border-radius: 5px;
+  }
+  
+  .heading {
+    text-align: center;
+    font-size: 1.5em;
+    margin-bottom: 20px;
+  }
+  
+  .inputGroup {
+    margin-bottom: 15px;
+  }
+  
+  .inputLabel {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
+  
+  .inputField {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .buttonGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .button {
+    padding: 10px;
+    background-color: #0070f3;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: center;
+  }
+  
+  .button:hover {
+    background-color: #005bb5;
+  }
+  
+  .socialButton {
+    background-color: #4267B2; /* Facebook blue */
+    color: white;
+  }
+  
+  .socialButton:hover {
+    background-color: #365899;
+  }
+  
+  .googleButton {
+    background-color: #DB4437; /* Google red */
+    color: white;
+  }
+  
+  .googleButton:hover {
+    background-color: #C23321;
+  }
+
+  
+.registerText {
+    text-align: center;
+    margin-top: 20px;
+  }
+  
+  .registerLink {
+    color: #0070f3;
+    text-decoration: none;
+  }
+  
+  .registerLink:hover {
+    text-decoration: underline;
+  }

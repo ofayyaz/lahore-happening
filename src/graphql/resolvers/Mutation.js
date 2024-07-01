@@ -1,5 +1,6 @@
 //const { PrismaClient } = require('@prisma/client');
 //const prisma = new PrismaClient();
+const bcrypt = require('bcryptjs');
 
 const prisma = require('../../prismaClientInstance');
 
@@ -104,10 +105,12 @@ const Mutation = {
   },
 
   createCategory: async (_, args) => await prisma.category.create({ data: { name: args.name } }),
+  
   updateCategory: async (_, args) => await prisma.category.update({
     where: { id: parseInt(args.id) },
     data: { name: args.name },
   }),
+
   deleteCategory: async (_, args) => await prisma.category.delete({ where: { id: parseInt(args.id) } }),
 
   createAuthor: async (_, args) => await prisma.author.create({
@@ -116,10 +119,12 @@ const Mutation = {
       bio: args.bio,
     }
   }),
+
   updateAuthor: async (_, args) => await prisma.author.update({
     where: { id: parseInt(args.id) },
     data: args,
   }),
+
   deleteAuthor: async (_, args) => await prisma.author.delete({ where: { id: parseInt(args.id) } }),
 
   createComment: async (_, { content, articleId, userId, parentId },) => {
@@ -138,87 +143,141 @@ const Mutation = {
         content,
         articleId,
         userId,
-        parentId
-      }
+        parentId,
+        likeCount: 0, 
+      },
+      include: {
+        user: true, // Include the user data in the response
+      },
     });
   },
 
-    updateComment: async (_, args) => await prisma.comment.update({
-      where: { id: parseInt(args.id) },
-      data: { content: args.content },
-    }),
-    deleteComment: async (_, args) => await prisma.comment.delete({ where: { id: parseInt(args.id) } }),
+  likeComment: async (_, { commentId, userId },) => {
+    const existingLike = await prisma.like.findUnique({
+      where: {
+        commentId_userId: {
+          commentId,
+          userId,
+        },
+      },
+    });
 
-    createImage: async (_, args) => await prisma.image.create({
-      data: {
-        url: args.url,
-        articleId: args.articleId,
-        alt: args.alt,
+    if (existingLike) {
+      throw new Error("You have already liked this comment.");
+    }
+    try {
+      const like = await prisma.like.create({
+        data: {
+          commentId,
+          userId,
+        },
+      });
+
+      const comment = await prisma.comment.update({
+        where: { id: commentId },
+        data: {
+          likeCount: {
+            increment: 1,
+          },
+        },
+        include: {
+          user: true,
+        },
+      });
+
+    return comment;
+    } catch (error) {
+      if (error.code === 'P2002') {  // Unique constraint violation error code in Prisma
+        // Log the error if needed, but do not throw
+        console.log("User has already liked this comment");
       }
-    }),
-    updateImage: async (_, args) => await prisma.image.update({
-      where: { id: parseInt(args.id) },
-      data: args,
-    }),
-    deleteImage: async (_, { id }) => {
-      try {
-        const deletedImage = await prisma.image.delete({
-          where: { id },
-        });
-        return deletedImage;
-      } catch (error) {
-        console.error("Error deleting image:", error);
-        throw new Error("Failed to delete image");
-      }
+    }
+      const comment = await prisma.comment.findUnique({
+        where: { id: commentId },
+        include: {
+          user: true,
+        },
+      });
+
+      return comment;
     },
+  
 
-    createCollection: async (_, args) => await prisma.collection.create({
+  updateComment: async (_, args) => await prisma.comment.update({
+    where: { id: parseInt(args.id) },
+    data: { content: args.content },
+  }),
+
+  deleteComment: async (_, args) => await prisma.comment.delete({ where: { id: parseInt(args.id) } }),
+
+  createImage: async (_, args) => await prisma.image.create({
+    data: {
+      url: args.url,
+      articleId: args.articleId,
+      alt: args.alt,
+    }
+  }),
+
+  updateImage: async (_, args) => await prisma.image.update({
+    where: { id: parseInt(args.id) },
+    data: args,
+  }),
+
+  deleteImage: async (_, { id }) => {
+    try {
+      const deletedImage = await prisma.image.delete({
+        where: { id },
+      });
+      return deletedImage;
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      throw new Error("Failed to delete image");
+    }
+  },
+
+  createUser: async (_, { email, displayName, provider }) => {
+    return await prisma.user.create({
       data: {
-        title: args.title,
-        description: args.description,
-      }
-    }),
-    updateCollection: async (_, args) => await prisma.collection.update({
-      where: { id: parseInt(args.id) },
-      data: args,
-    }),
-    deleteCollection: async (_, args) => await prisma.collection.delete({ where: { 
-      id: parseInt(args.id) } }),
-  }
+        email,
+        displayName,
+        provider,
+      },
+    });
+  },
+
+  createCollection: async (_, args) => await prisma.collection.create({
+    data: {
+      title: args.title,
+      description: args.description,
+    }
+  }),
+
+  updateCollection: async (_, args) => await prisma.collection.update({
+    where: { id: parseInt(args.id) },
+    data: args,
+  }),
+
+  deleteCollection: async (_, args) => await prisma.collection.delete({ where: { 
+    id: parseInt(args.id) } }),
+
+  likeComment: async (_, { commentId, userId  }, ) => {
+    const like = await prisma.like.create({
+      data: {
+        commentId,
+        userId,
+      },
+    });
+
+    const comment = await prisma.comment.update({
+      where: { id: parseInt(commentId) },
+      data: {
+        likeCount: {
+          increment: 1,
+        },
+      },
+    });
+    return comment;
+  },
+}
 
 module.exports = Mutation;
-
-/*
-prisma.article.create({
-      data: {
-        title,
-        content,
-        featured,
-        published,
-        category: {
-          connect: { id: parseInt(categoryId) }
-        },
-        author: {
-          connect: { id: parseInt(authorId) }
-        },
-        images: validImages.map(img => ({
-          create: {
-            url: img.url,
-            alt: img.alt || ""
-          }
-        })),
-        collection: collectionId ? { connect: { id: parseInt(collectionId) } } : undefined
-      }
-    });
-
-     prisma.article.create({
-        data: {
-          title: title,
-          content: content,
-          categoryId: categoryId,  
-          authorId: authorId,    
-          published: false,
-          featured: false
-        }
-    });
-*/

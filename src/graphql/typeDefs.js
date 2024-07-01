@@ -20,6 +20,10 @@ type Query {
 
   getCommentsByArticleId(articleId: Int!): [Comment!]!
 
+  user(id: Int!): User
+  users: [User!]!
+  getUserByEmail(email: String!): User
+
   testArticleModel: String
   testContext: String
 
@@ -67,9 +71,10 @@ type Mutation {
   deleteAuthor(id: Int!): Author!
 
   # Comment mutations
-  createComment(content: String!, articleId: Int!): Comment!
+  createComment(content: String!, articleId: Int!, userId: Int!, parentId: Int): Comment
   updateComment(id: Int!, content: String!): Comment!
   deleteComment(id: Int!): Comment!
+  likeComment(commentId: Int!, userId: Int!): Comment!
 
   # Image mutations
   createImage(url: String!, articleId: Int!, alt: String): Image!
@@ -80,6 +85,9 @@ type Mutation {
   createCollection(title: String!, description: String): Collection!
   updateCollection(id: Int!, title: String, description: String): Collection!
   deleteCollection(id: Int!): Collection!
+
+  # User mutations
+  createUser(email: String!, displayName: String!, provider: String!): User!
 }
 
 type Article {
@@ -124,6 +132,7 @@ type Comment {
   parent: Comment
   parentId: Int
   children: [Comment!]
+  likeCount: Int!
 }
 
 type Image {
@@ -143,9 +152,18 @@ type Collection {
 
 type User {
   id: Int!
-  name: String!
   email: String!
+  displayName: String!
+  photoURL: String
+  provider: String!
   comment: [Comment!]
+}
+
+type Like {
+  id: Int!
+  commentId: Int!
+  userId: Int!
+  createdAt: String!
 }
 
 scalar DateTime

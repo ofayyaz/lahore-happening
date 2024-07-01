@@ -10,7 +10,7 @@ export default function Header() {
     return (
         <div className={styles.header}>
             <div ><Button onClick={() => {/* handle menu */}}><MenuIcon/></Button></div>
-            <Image src="/logo.png" alt="Logo" width={60} height={40} />
+            <Image src="/logo.jpg" alt="Logo" width={60} height={40} />
             <div onClick={() => setSearchVisible(!searchVisible)}>🔍</div>
             <div onClick={() => {/* handle contact */}}>✉️</div>
             {searchVisible && <input type="text" placeholder="Search articles..." className={styles.searchBar} />}

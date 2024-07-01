@@ -25,9 +25,14 @@ const Query = {
 
     getCommentsByArticleId: async (_, { articleId },) => {
       const comments = await prisma.comment.findMany({
-        where: { id: parseInt(articleId)} ,
+        where: { articleId: parseInt(articleId)} ,
         include: {
-          user: true
+          user: true,
+          children: {
+            include: {
+              user: true,
+            }
+          }
         }    
       });
       return comments || [];
@@ -39,6 +44,21 @@ const Query = {
     getImageById: async (_, { id }) => await prisma.image.findUnique({ where: { id: parseInt(id) } }),
     getCollectionById: async (_, { id }) => await prisma.collection.findUnique({ where: { id: parseInt(id) } }),
 
+    user: async (_, { id }) => {
+      return await prisma.user.findUnique({
+        where: { id: id },
+      });
+    },
+    users: async () => {
+      return await prisma.user.findMany();
+    },
+
+    getUserByEmail: async (_, { email }) => {
+      return await prisma.user.findUnique({
+        where: { email },
+      });
+    },
+    
     testContext: (_, __, context) => {
       console.log(context);  // This will log the entire context object
       return "Check server console log for context details.";
