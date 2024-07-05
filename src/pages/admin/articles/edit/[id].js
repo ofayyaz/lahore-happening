@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect,useRef } from 'react';
 import { useRouter } from 'next/router';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import Link from 'next/link';
@@ -6,6 +6,9 @@ import styles from './EditArticle.module.css';
 import ArticleForm from '../../../../components/adminForms/ArticleForm';
 import ImageManager from '../../../../components/adminForms/ImageManager';
 import axios from 'axios';
+import 'react-quill/dist/quill.snow.css';
+import 'quill/dist/quill.snow.css';
+
 
 const GET_ARTICLE = gql`
  query GetArticleById($id: Int!) {
@@ -97,6 +100,7 @@ export default function EditArticle() {
    const { data: authorsData, loading: authorsLoading, error: authorsError } = useQuery(GET_AUTHORS);
    const [deleteImage] = useMutation(DELETE_IMAGE);
    const [initialImages, setInitialImages] = useState([]);
+   const quillRef = useRef(null);
    const [formData, setFormData] = useState({
       title: '',
       content: '',
@@ -107,10 +111,12 @@ export default function EditArticle() {
       images: []
    });
 
+   console.log('quillRef in parent:', quillRef);
+
    useEffect(() => {
        if (data && data.getArticleById) {
           const initialImagesData = data.getArticleById.images.map(img => ({
-            id: img.id, // Ensure id is included for client-side logic
+            id: img.id, 
             imageUrl: img.url,
             imageAlt: img.alt
           }));
@@ -141,7 +147,6 @@ export default function EditArticle() {
   useEffect(() => {
     console.log("Current formData.images:", formData.images);
 }, [formData.images]); 
-    
 
    const [updateArticle, { loading: updating, error: updateError }] = useMutation(UPDATE_ARTICLE, {
        onCompleted: () => alert('Article updated successfully')
@@ -206,20 +211,38 @@ export default function EditArticle() {
       setFormData({ ...formData, images: [...formData.images, newImage] });
    };
 
+ 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     try { 
+        const quill = quillRef.current.getEditor();
+        const delta = quill.getContents();
         console.log("handle submit all images:", formData.images)
         const imageUploadPromises = formData.images.filter(img => img.file).map((img) => {
             const uploadFormData = new FormData();
             uploadFormData.append('file', img.file);
             return axios.post('/api/upload', uploadFormData).then(response => {
-              return { url: response.data[0].url, alt: img.imageAlt };
+              return { url: response.data[0].url, alt: img.imageAlt, placeholder: img.placeholder };
           });
         });
         
         const uploadedImages = await Promise.all(imageUploadPromises);
+
+        const updatedDelta = delta.ops.map(op => {
+          if (op.insert && op.insert.image) {
+            const uploadedImage = uploadedImages.find(img => img.placeholder === op.insert.image);
+            if (uploadedImage) {
+              return { insert: { image: uploadedImage.url } };
+            }
+          }
+          return op;
+        });
+    
+        quill.setContents(updatedDelta);
+    
+        const finalContent = quill.root.innerHTML;
+
         const existingImages = formData.images.filter(img => !img.file && img.id).map(img => ({
           id: img.id,
           url: img.imageUrl,
@@ -232,7 +255,7 @@ export default function EditArticle() {
         const variables = {
             id: articleId,
             title: formData.title,
-            content: formData.content,
+            content: finalContent,
             categoryId: parseInt(formData.categoryId),
             authorId: parseInt(formData.authorId),
             featured: formData.featured,
@@ -260,8 +283,6 @@ export default function EditArticle() {
     }
 };
    
-   
-
    if (categoriesLoading || authorsLoading) return <p>Loading categories and authors...</p>;
    if (categoriesError || authorsError) {
        console.error(categoriesError || authorsError);
@@ -275,9 +296,22 @@ export default function EditArticle() {
         <div className={styles.container}>
             <h1 className={styles.title}>Edit Article</h1>
             <form onSubmit={handleSubmit} className="space-y-6">
-                <ArticleForm formData={formData} onChange={handleFormChange} categoriesData={categoriesData} authorsData={authorsData} />
-                <ImageManager images={formData.images} onFileChange={handleFileChange} onAltChange={handleAltChange} onAddImage={handleAddImage} onDeleteImage={handleDeleteImage} />
-                <button type="submit" disabled={!isModified || updating || isLoading} className={styles.submitButton}>Save Changes</button>
+              <ArticleForm 
+                  formData={formData} 
+                  onChange={handleFormChange} 
+                  categoriesData={categoriesData} 
+                  authorsData={authorsData} 
+                  quillRef={quillRef} 
+                  setFormData={setFormData} 
+              />
+              <ImageManager 
+                  images={formData.images} 
+                  onFileChange={handleFileChange} 
+                  onAltChange={handleAltChange} 
+                  onAddImage={handleAddImage} 
+                  onDeleteImage={handleDeleteImage} 
+              />
+              <button type="submit" disabled={!isModified || updating || isLoading} className={styles.submitButton}>Save Changes</button>
             </form>
             <Link href="/admin/articles" className={styles.link}>Back to articles</Link>
         </div>

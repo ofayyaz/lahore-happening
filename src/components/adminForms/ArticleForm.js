@@ -1,6 +1,95 @@
-import React from 'react';
+import React, { useCallback, useMemo, useRef, useEffect }  from 'react';
+import dynamic from 'next/dynamic';
+import 'react-quill/dist/quill.snow.css';
+import 'quill/dist/quill.snow.css'; 
+import quill from 'quill/core/quill';
+import QuillEditor from 'react-quill';
 
-export default function ArticleForm({ formData, onChange, categoriesData, authorsData }) {
+const baseModules = {
+    toolbar: {
+      container: [
+        [{ 'header': '1' }, { 'header': '2' }, { 'font': [] }],
+        [{ size: [] }],
+        ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+        [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'indent': '-1' }, { 'indent': '+1' }],
+        ['link', 'image'],
+        ['clean']
+      ]
+   },
+    clipboard: {
+      matchVisual: false,
+    }
+  }
+  
+  const formats = [
+    'header', 'font', 'size',
+    'bold', 'italic', 'underline', 'strike', 'blockquote',
+    'list', 'bullet', 'indent',
+    'link', 'image'
+];
+
+const ArticleForm = ({ formData, onChange, categoriesData, authorsData, quillRef, setFormData}) => {
+    const handleImage = useCallback(() => {
+        if (typeof window !== 'undefined') {
+          console.log("Image handler called");
+          console.log("document in imageHandler at start:", document.location.href); // Check current URL at start
+          console.log('quillRef.current in ArticleForm handleImage:', quillRef.current); 
+          const input = document.createElement('input');
+          input.setAttribute('type', 'file');
+          input.setAttribute('accept', 'image/*');
+          input.click();
+    
+          input.onchange = () => {
+            const file = input.files[0];
+            if (file) {
+              const placeholderURL = URL.createObjectURL(file);
+              const quill = quillRef.current.getEditor();
+              const range = quill.getSelection();
+              quill.insertEmbed(range.index, 'image', placeholderURL);
+              console.log("placeholderURL inside handleImage input.onChange:", placeholderURL);
+              // Add the file and its placeholder to formData.images
+              setFormData(oldFormData => ({
+                ...oldFormData,
+                images: [...oldFormData.images, { file, placeholder: placeholderURL }]
+              }));
+            }
+          };
+        }
+      }, [quillRef, setFormData]);
+
+    console.log('quillRef in ArticleForm:', quillRef);
+    
+    
+    const handleQuillChange = (content, delta, source, editor) => {
+        const html = editor.getHTML();
+        const event = {
+          target: {
+            name: 'content',
+            value: html
+          }
+        };
+        onChange(event);
+    };
+
+    useEffect(() => {
+        console.log('quillRef.current in ArticleForm useEffect:', quillRef.current); 
+        if (quillRef.current && typeof quillRef.current.getEditor === 'function') {
+            const quillEditor = quillRef.current.getEditor();
+            console.log("inside ArticleForm useEffect quillRef editor OK")
+            quillEditor.clipboard.dangerouslyPasteHTML(formData.content);
+        }
+    }, [formData.content, quillRef]);
+    
+    const modules = useMemo(() => ({
+        ...baseModules,
+        toolbar: {
+          ...baseModules.toolbar,
+          handlers: {
+            image: handleImage
+          }
+        }
+      }), [handleImage]);
+
     return (
         <>
             <div>
@@ -17,14 +106,14 @@ export default function ArticleForm({ formData, onChange, categoriesData, author
             </div>
             <div>
                 <label htmlFor="content" className="block text-sm font-medium text-gray-700">Content</label>
-                <textarea
-                    name="content"
-                    id="content"
-                    rows="4"
+                <QuillEditor
+                    ref={quillRef}
                     value={formData.content}
-                    onChange={onChange}
-                    required
-                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                    onChange={handleQuillChange}
+                    modules={modules}
+                    formats={formats}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+          style={{ height: '300px' }}
                 />
             </div>
             <div>
@@ -36,7 +125,7 @@ export default function ArticleForm({ formData, onChange, categoriesData, author
                     onChange={onChange}
                     required
                     className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                >
+                    >
                     {categoriesData && categoriesData.allCategories.map(category => (
                         <option key={category.id} value={category.id}>{category.name}</option>
                     ))}
@@ -81,3 +170,5 @@ export default function ArticleForm({ formData, onChange, categoriesData, author
         </>
     );
 }
+
+export default ArticleForm;
