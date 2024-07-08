@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, FacebookAuthProvider } from 'firebase/auth';
 import { auth } from '../../firebaseConfig';
 import styles from './LogIn.module.css';
-import { useQuery, useMutation, gql } from '@apollo/client';
+import { useApolloClient, useMutation, gql } from '@apollo/client';
 import { useRouter } from 'next/router';
 
 const CREATE_USER = gql`
@@ -21,7 +21,7 @@ const CREATE_USER = gql`
 
 const CHECK_USER_EXISTENCE = gql`
   query CheckUserExistence($email: String!) {
-    userByEmail(email: $email) {
+    getUserByEmail(email: $email) {
       id
       email
       displayName
@@ -30,15 +30,18 @@ const CHECK_USER_EXISTENCE = gql`
   }
 `;
 
-const handleUser = async (user, provider, registerUser,checkUserExistence,router, articleId) => {
+const handleUser = async (user, provider, registerUser,client,router, redirect) => {
     const { email, displayName } = user;
     try {
-        const { data } = await checkUserExistence({ variables: { email } });
-        if (!data.userByEmail) {
+        const { data } = await client.query({
+          query: CHECK_USER_EXISTENCE,
+          variables: { email },
+        });
+        if (!data.getUserByEmail) {
             await registerUser({ variables: { email, displayName, provider } });
         }
         // Handle successful registration (e.g., redirect, display message)
-        router.push(`/article/${articleId}?comment=true`);
+        router.push(redirect || '/');
       } catch (error) {
         console.error('Error registering user:', error.message);
       }
@@ -47,13 +50,16 @@ const handleUser = async (user, provider, registerUser,checkUserExistence,router
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [checkUserExistence] = useMutation(CHECK_USER_EXISTENCE);
+  const [registerUser] = useMutation(CREATE_USER);
+  const client = useApolloClient();
+  const router = useRouter();
+  const { redirect } = router.query;
 
   const handleLogin = async () => {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
-        await handleUser(user, 'email', registerUser, checkUserExistence, router, articleId);  
+        await handleUser(user, 'email', registerUser, client, router, redirect);  
       // Handle successful login (e.g., redirect, display message)
     } catch (error) {
       console.error('Error logging in:', error.message);
@@ -65,7 +71,7 @@ const LoginPage = () => {
     try {
         const result = await signInWithPopup(auth, googleProvider);
         const user = result.user;
-        await handleUser(user, 'google', registerUser, checkUserExistence, router, articleId);
+        await handleUser(user, 'google', registerUser, client, router, redirect);
         // Handle successful login (e.g., redirect, display message)
         
     } catch (error) {
@@ -78,7 +84,7 @@ const LoginPage = () => {
     try {
         const result = await signInWithPopup(auth, facebookProvider);
         const user = result.user;
-        await handleUser(user, 'facebook', registerUser, checkUserExistence, router, articleId);
+        await handleUser(user, 'facebook', registerUser, client, router, redirect);
     } catch (error) {
       console.error('Error logging in with Facebook:', error.message);
     }

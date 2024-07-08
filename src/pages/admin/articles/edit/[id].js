@@ -1,6 +1,6 @@
 import { useState, useEffect,useRef } from 'react';
 import { useRouter } from 'next/router';
-import { useQuery, useMutation, gql } from '@apollo/client';
+import { useQuery, useMutation, gql  } from '@apollo/client';
 import Link from 'next/link';
 import styles from './EditArticle.module.css';
 import ArticleForm from '../../../../components/adminForms/ArticleForm';
@@ -8,7 +8,6 @@ import ImageManager from '../../../../components/adminForms/ImageManager';
 import axios from 'axios';
 import 'react-quill/dist/quill.snow.css';
 import 'quill/dist/quill.snow.css';
-
 
 const GET_ARTICLE = gql`
  query GetArticleById($id: Int!) {
@@ -86,16 +85,20 @@ const DELETE_IMAGE = gql`
  }
 `;
 
+
+
 export default function EditArticle() {
    const router = useRouter();
    const { id } = router.query;
    const articleId = parseInt(id);
    const [isModified, setIsModified] = useState(false);
    const [isLoading, setIsLoading] = useState(false);
+   const [isSubmitting, setIsSubmitting] = useState(false);
    const { data, loading, error } = useQuery(GET_ARTICLE, {
        variables: { id: articleId },
        skip: !id
    });
+
    const { data: categoriesData, loading: categoriesLoading, error: categoriesError } = useQuery(GET_CATEGORIES);
    const { data: authorsData, loading: authorsLoading, error: authorsError } = useQuery(GET_AUTHORS);
    const [deleteImage] = useMutation(DELETE_IMAGE);
@@ -111,7 +114,7 @@ export default function EditArticle() {
       images: []
    });
 
-   console.log('quillRef in parent:', quillRef);
+   //console.log('quillRef in parent:', quillRef);
 
    useEffect(() => {
        if (data && data.getArticleById) {
@@ -134,18 +137,19 @@ export default function EditArticle() {
    }, [data]);
 
    useEffect(() => {
-    // Cleanup function to revoke all blob URLs
-    return () => {
-      formData.images.forEach(img => {
-        if (img.imageUrl && img.imageUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(img.imageUrl);
-        }
-      });
-    };
-  }, [formData.images]); 
+    if (!isSubmitting) {
+      return () => {
+        formData.images.forEach(img => {
+          if (img.imageUrl && img.imageUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(img.imageUrl);
+          }
+        });
+      };
+    }
+  }, [formData.images, isSubmitting]); 
 
   useEffect(() => {
-    console.log("Current formData.images:", formData.images);
+    console.log("Current formData.images from useEffect in ArticleEdit:", formData.images);
 }, [formData.images]); 
 
    const [updateArticle, { loading: updating, error: updateError }] = useMutation(UPDATE_ARTICLE, {
@@ -215,23 +219,29 @@ export default function EditArticle() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setIsSubmitting(true);
     try { 
         const quill = quillRef.current.getEditor();
         const delta = quill.getContents();
+        console.log("quill content:", delta)
         console.log("handle submit all images:", formData.images)
         const imageUploadPromises = formData.images.filter(img => img.file).map((img) => {
             const uploadFormData = new FormData();
             uploadFormData.append('file', img.file);
             return axios.post('/api/upload', uploadFormData).then(response => {
-              return { url: response.data[0].url, alt: img.imageAlt, placeholder: img.placeholder };
+              console.log("in EditArticle handleSubmit images:", response.data[0].url);
+              return { url: response.data[0].url, alt: img.imageAlt, placeholder: img.placeholder
+               };
           });
         });
         
         const uploadedImages = await Promise.all(imageUploadPromises);
 
         const updatedDelta = delta.ops.map(op => {
+          console.log("Current operation (op):", op);
           if (op.insert && op.insert.image) {
             const uploadedImage = uploadedImages.find(img => img.placeholder === op.insert.image);
+            console.log("Matched uploaded image for placeholder:", op.insert.image, uploadedImage);
             if (uploadedImage) {
               return { insert: { image: uploadedImage.url } };
             }
@@ -280,6 +290,7 @@ export default function EditArticle() {
         console.error("Update error:", error);
     } finally {
         setIsLoading(false);
+        setIsSubmitting(false);
     }
 };
    

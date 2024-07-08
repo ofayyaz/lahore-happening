@@ -1,9 +1,24 @@
 .header {
+    position: fixed;
     display: flex;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+    background-color: white; 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     align-items: center;
     justify-content: space-between;
-    padding: 10px 20px;
+    padding: 10px;
     background-color: #f0f0f0;
+    transition: transform 0.3s ease-in-out;
+}
+
+.headerVisible {
+    transform: translateY(0);
+}
+
+.headerHidden {
+    transform: translateY(-100%);
 }
 
 .searchBar {
@@ -11,4 +26,8 @@
     top: 50px;
     width: 100%;
     left: 0;
+}
+
+.spacer {
+    height: 70px; /* Adjust this height to match the header height */
 }
