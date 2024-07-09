@@ -37,6 +37,7 @@ model User {
   email     String   @unique
   photoURL    String?
   provider    String
+  role        String    @default("Subscriber")
   createdAt   DateTime @default(now())
   comments  Comment[]
   likes       Like[]  

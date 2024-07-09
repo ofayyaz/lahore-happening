@@ -69,6 +69,7 @@ export default function Header() {
     };
 
     return (
+        <>
         <div className={`${styles.header} ${isHeaderVisible ? styles.headerVisible : styles.headerHidden}`}>
             <div>
                 <ClickAwayListener onClickAway={handleMenuClickAway}>
@@ -99,15 +100,20 @@ export default function Header() {
             <ClickAwayListener onClickAway={handleSearchClickAway}>
                 <div onClick={() => setSearchVisible(!searchVisible)}><SearchIcon/></div>
             </ClickAwayListener>
-            <div className="cursor-pointer">
+            <div >
                 {!user ? (
-                    <span onClick={redirectToLogin}>Sign in</span>
+                    <span className="cursor-pointer" onClick={redirectToLogin}>Sign in</span>
                 ) : (
-                    <span onClick={handleSignOut}>Sign Out</span>
+                    <div>
+                    <p>Signed in as {user.displayName}</p>
+                    <span className="cursor-pointer" onClick={handleSignOut}>Sign Out</span>
+                    </div>
                 )}
             </div>
             {searchVisible && <input type="text" placeholder="Search articles..." className={styles.searchBar} />}
-            <div className={styles.spacer}></div>
+            
         </div>
+        <div className={styles.spacer}></div>
+        </>
     );
 }

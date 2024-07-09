@@ -85,8 +85,6 @@ const DELETE_IMAGE = gql`
  }
 `;
 
-
-
 export default function EditArticle() {
    const router = useRouter();
    const { id } = router.query;

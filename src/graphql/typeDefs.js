@@ -157,6 +157,7 @@ type User {
   photoURL: String
   provider: String!
   comment: [Comment!]
+  role: String!
 }
 
 type Like {

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useEffect }  from 'react';
+import React, { useCallback, useMemo, useEffect }  from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 import 'quill/dist/quill.snow.css'; 
@@ -38,7 +38,6 @@ const ArticleForm = ({ formData, onChange, categoriesData, authorsData, quillRef
           const input = document.createElement('input');
           input.setAttribute('type', 'file');
           input.setAttribute('accept', 'image/*');
-          //input.setAttribute('multiple', 'multiple'); 
           input.click();
     
           input.onchange = () => {
@@ -84,7 +83,7 @@ const ArticleForm = ({ formData, onChange, categoriesData, authorsData, quillRef
 
     useEffect(() => {
         //console.log('quillRef.current in ArticleForm useEffect:', quillRef.current); 
-        if (quillRef.current && typeof quillRef.current.getEditor === 'function') {
+        if (typeof window !== 'undefined' && quillRef.current && typeof quillRef.current.getEditor === 'function') {
             const quillEditor = quillRef.current.getEditor();
             //console.log("inside ArticleForm useEffect quillRef editor OK")
             quillEditor.clipboard.dangerouslyPasteHTML(formData.content);

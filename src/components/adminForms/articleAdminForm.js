@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useMutation, useQuery,gql } from '@apollo/client';
 import axios from 'axios';
+import ArticleForm from './ArticleForm'; 
 import styles from './ArticleAdmin.module.css';
 
 const CREATE_ARTICLE = gql`
@@ -15,7 +16,6 @@ mutation CreateArticle($title: String!, $content: String!, $categoryId: Int!, $a
       }
     }
   }
-  
 `;
 
 const GET_CATEGORIES = gql`
@@ -36,7 +36,6 @@ const GET_AUTHORS = gql`
   }
 `;
 
-
 export default function ArticleAdmin() {
     const [formData, setFormData] = useState({
         title: '',
@@ -49,6 +48,7 @@ export default function ArticleAdmin() {
         published: false
     });
 
+    const quillRef = useRef(null);
     const { data: categoriesData, loading: categoriesLoading, error: categoriesError } = useQuery(GET_CATEGORIES);
     const { data: authorsData, loading: authorsLoading, error: authorsError } = useQuery(GET_AUTHORS);
 
@@ -64,24 +64,13 @@ export default function ArticleAdmin() {
             console.error("Error creating an article:", error);
         }
     });
-    
-    const handleAddImage = () => {
-        setFormData({
-            ...formData,
-            images: [...formData.images, { file: null, imageUrl: '', imageAlt: '' }]
-        });
-    };
-    
-    const handleRemoveImage = (index) => {
-        const newImages = formData.images.filter((_, i) => i !== index);
-        setFormData({ ...formData, images: newImages });
-    };
 
-    const handleFileChange = (file, index) => {
-        const newImages = [...formData.images];
-        newImages[index].file = file;
-        newImages[index].imageUrl = URL.createObjectURL(file);
-        setFormData({ ...formData, images: newImages });
+    const handleInputChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setFormData(oldFormData => ({
+            ...oldFormData,
+            [name]: type === 'checkbox' ? checked : value
+        }));
     };
     
     const handleSubmit = async (e) => {
@@ -131,41 +120,86 @@ export default function ArticleAdmin() {
     return (
         <form onSubmit={handleSubmit} className={styles.formContainer}>
             <h2 className={styles.title}>Add New Article</h2>
-            <input type="text" className={styles.inputField} name="title" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} placeholder="Title" required />
-            <textarea className={styles.textAreaField} name="content" value={formData.content} onChange={(e) => setFormData({...formData, content: e.target.value})} placeholder="Content" required />
-            {formData.images.map((image, index) => (
-                <div key={index} className={styles.imageInputContainer}>
-                    <input type="file" onChange={(e) => handleFileChange(e.target.files[0], index)} />
-                    <input type="text" className={styles.imageAltInput} value={image.imageAlt} onChange={(e) => {
-                        const newImages = [...formData.images];
-                        newImages[index].imageAlt = e.target.value;
-                        setFormData({...formData, images: newImages});
-                    }} placeholder="Image Alt Text" />
-                    <button type="button" onClick={() => handleRemoveImage(index)} className={`${styles.button} ${styles.imageRemoveButton}`}>Remove</button>
-                </div>
-            ))}
-            <button type="button" onClick={handleAddImage} className={styles.button}>Add Image</button>
-            <select className={styles.selectField} name="categoryId" value={formData.categoryId} onChange={(e) => setFormData({...formData, categoryId: e.target.value})} required>
-                <option value="">Select a Category</option>
-                {categoriesData?.allCategories.map((category) => (
-                    <option key={category.id} value={category.id}>{category.name}</option>
-                ))}
-            </select>
-            <select className={styles.selectField} name="authorId" value={formData.authorId} onChange={(e) => setFormData({...formData, authorId: e.target.value})} required>
-                <option value="">Select an Author</option>
-                {authorsData?.allAuthors.map((author) => (
-                    <option key={author.id} value={author.id}>{author.name}</option>
-                ))}
-            </select>
-            <label className={styles.checkboxLabel}>
-                <input type="checkbox" name="featured" checked={formData.featured} onChange={(e) => setFormData({...formData, featured: e.target.checked})} />
-                Featured
-            </label>
-            <label className={styles.checkboxLabel}>
-                <input type="checkbox" name="published" checked={formData.published} onChange={(e) => setFormData({...formData, published: e.target.checked})} />
-                Published
-            </label>
+            <ArticleForm
+                formData={formData}
+                onChange={handleInputChange}
+                categoriesData={categoriesData}
+                authorsData={authorsData}
+                quillRef={quillRef}
+                setFormData={setFormData}
+            />
             <button type="submit" disabled={loading} className={styles.button}>Add Article</button>
         </form>
     );
 }
+
+/*
+
+const handleQuillChange = (content, delta, source, editor) => {
+        const html = editor.getHTML();
+        setFormData(oldFormData => ({
+          ...oldFormData,
+          content: html
+        }));
+      };
+
+const handleAddImage = () => {
+    setFormData({
+        ...formData,
+        images: [...formData.images, { file: null, imageUrl: '', imageAlt: '' }]
+    });
+};
+
+const handleRemoveImage = (index) => {
+    const newImages = formData.images.filter((_, i) => i !== index);
+    setFormData({ ...formData, images: newImages });
+};
+
+const handleFileChange = (file, index) => {
+    const newImages = [...formData.images];
+    newImages[index].file = file;
+    newImages[index].imageUrl = URL.createObjectURL(file);
+    setFormData({ ...formData, images: newImages });
+};
+
+const handleImage = useCallback(() => {
+    //console.log("document in imageHandler at start:", document.location.href); 
+    
+    if (typeof window !== 'undefined') {
+      const input = document.createElement('input');
+      input.setAttribute('type', 'file');
+      input.setAttribute('accept', 'image/*');
+      input.click();
+
+      input.onchange = () => {
+        const file = input.files[0];
+        if (file) {
+          const blobplaceholderURL = URL.createObjectURL(file);
+          const placeholderURL = blobplaceholderURL.replace('blob:', '');
+          const quill = quillRef.current.getEditor();
+          const range = quill.getSelection(true);
+          quill.insertEmbed(range.index, "image", placeholderURL);
+          quill.setSelection(range.index + 1);
+          setFormData(oldFormData => {
+            const newImages = [...oldFormData.images, { file, placeholder: placeholderURL }];
+            return {
+              ...oldFormData,
+              images: newImages
+            };
+          });
+        }
+      }
+    }
+  }, [quillRef, setFormData]);
+  
+  const modules = useMemo(() => ({
+        ...baseModules,
+        toolbar: {
+          ...baseModules.toolbar,
+          handlers: {
+            image: handleImage
+          }
+        }
+      }), [handleImage]);
+      
+      */
