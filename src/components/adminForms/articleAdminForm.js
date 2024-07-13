@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react';
 import { useMutation, useQuery,gql } from '@apollo/client';
 import axios from 'axios';
-import ArticleForm from './ArticleForm'; 
+import dynamic from 'next/dynamic';
 import styles from './ArticleAdmin.module.css';
+const ArticleForm = dynamic(() => import('./ArticleForm'), { ssr: false });
+
 
 const CREATE_ARTICLE = gql`
 mutation CreateArticle($title: String!, $content: String!, $categoryId: Int!, $authorId: Int!, $featured: Boolean!, $published: Boolean!, $images: [ImageInput!]) {
@@ -132,74 +134,3 @@ export default function ArticleAdmin() {
         </form>
     );
 }
-
-/*
-
-const handleQuillChange = (content, delta, source, editor) => {
-        const html = editor.getHTML();
-        setFormData(oldFormData => ({
-          ...oldFormData,
-          content: html
-        }));
-      };
-
-const handleAddImage = () => {
-    setFormData({
-        ...formData,
-        images: [...formData.images, { file: null, imageUrl: '', imageAlt: '' }]
-    });
-};
-
-const handleRemoveImage = (index) => {
-    const newImages = formData.images.filter((_, i) => i !== index);
-    setFormData({ ...formData, images: newImages });
-};
-
-const handleFileChange = (file, index) => {
-    const newImages = [...formData.images];
-    newImages[index].file = file;
-    newImages[index].imageUrl = URL.createObjectURL(file);
-    setFormData({ ...formData, images: newImages });
-};
-
-const handleImage = useCallback(() => {
-    //console.log("document in imageHandler at start:", document.location.href); 
-    
-    if (typeof window !== 'undefined') {
-      const input = document.createElement('input');
-      input.setAttribute('type', 'file');
-      input.setAttribute('accept', 'image/*');
-      input.click();
-
-      input.onchange = () => {
-        const file = input.files[0];
-        if (file) {
-          const blobplaceholderURL = URL.createObjectURL(file);
-          const placeholderURL = blobplaceholderURL.replace('blob:', '');
-          const quill = quillRef.current.getEditor();
-          const range = quill.getSelection(true);
-          quill.insertEmbed(range.index, "image", placeholderURL);
-          quill.setSelection(range.index + 1);
-          setFormData(oldFormData => {
-            const newImages = [...oldFormData.images, { file, placeholder: placeholderURL }];
-            return {
-              ...oldFormData,
-              images: newImages
-            };
-          });
-        }
-      }
-    }
-  }, [quillRef, setFormData]);
-  
-  const modules = useMemo(() => ({
-        ...baseModules,
-        toolbar: {
-          ...baseModules.toolbar,
-          handlers: {
-            image: handleImage
-          }
-        }
-      }), [handleImage]);
-      
-      */

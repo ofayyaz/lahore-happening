@@ -1,0 +1,57 @@
+.formGroup {
+  margin-bottom: 20px; /* Adjust this value to control spacing between form groups */
+}
+
+.formGroupQuill {
+  margin-bottom: 20px; /* Adjust this value to control spacing between form groups */
+}
+
+.formGroupCategory {
+  margin-bottom: 20px; /* Adjust this value to control spacing between form groups */
+  padding-top: 50px; 
+}
+
+.quillContainer {
+  
+  border-radius: 0.375rem;
+  padding: 1rem;
+  
+  margin-bottom: 200px; /* Additional margin to ensure space below the Quill editor */
+  height: 450px; /* Fixed height for the container */
+  overflow: hidden; /* Ensure content does not overflow */
+}
+
+.quillEditor {
+  height: 100%; /* Ensure the editor takes the full height of the container */
+  margin-bottom: 0; /* Remove additional margin from the editor itself */
+}
+
+.titleLabel {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4a5568;
+  margin-bottom: 4px;
+}
+
+.inputField, .selectField {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.inputField:focus, .selectField:focus {
+  border-color: #5a67d8;
+  box-shadow: 0 0 0 1px #5a67d8, 0 0 0 4px rgba(90, 103, 216, 0.1);
+}
+
+.checkboxLabel {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4a5568;
+  margin-top: 0.5rem;
+}

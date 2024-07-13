@@ -70,9 +70,18 @@
 }
 
 .submitButton:hover,
-.submitButton:disabled {
+ {
     background-color: #0056b3; /* Darker blue on hover and when disabled */
 }
+
+.submitButton:disabled {
+    background-color: #ccc;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: not-allowed;
+  }
 
 .link {
     display: block; /* Block level to occupy full width */

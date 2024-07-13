@@ -58,6 +58,17 @@ const Query = {
         where: { email },
       });
     },
+
+    searchUsers: async (_, { query }) => {
+      return await prisma.user.findMany({
+        where: {
+          OR: [
+            { displayName: { contains: query } },
+            { email: { contains: query } }
+          ]
+        }
+      });
+    },
     
     testContext: (_, __, context) => {
       console.log(context);  // This will log the entire context object

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import styles from './EditArticle.module.css';
 import ArticleForm from '../../../../components/adminForms/ArticleForm';
 import ImageManager from '../../../../components/adminForms/ImageManager';
+import PrivateRoute from '../../../../components/PrivateRoute';
 import axios from 'axios';
 import 'react-quill/dist/quill.snow.css';
 import 'quill/dist/quill.snow.css';
@@ -85,7 +86,7 @@ const DELETE_IMAGE = gql`
  }
 `;
 
-export default function EditArticle() {
+function EditArticle() {
    const router = useRouter();
    const { id } = router.query;
    const articleId = parseInt(id);
@@ -111,8 +112,6 @@ export default function EditArticle() {
       published: false,
       images: []
    });
-
-   //console.log('quillRef in parent:', quillRef);
 
    useEffect(() => {
        if (data && data.getArticleById) {
@@ -148,7 +147,7 @@ export default function EditArticle() {
 
   useEffect(() => {
     console.log("Current formData.images from useEffect in ArticleEdit:", formData.images);
-}, [formData.images]); 
+}, [formData.images]);   
 
    const [updateArticle, { loading: updating, error: updateError }] = useMutation(UPDATE_ARTICLE, {
        onCompleted: () => alert('Article updated successfully')
@@ -326,3 +325,21 @@ export default function EditArticle() {
         </div>
     );
 }
+
+const EditArticlePage = () => (
+  <PrivateRoute allowedRoles={['Admin', 'Moderator']}>
+    <EditArticle />
+  </PrivateRoute>
+);
+
+export default EditArticlePage;
+
+/*
+<ImageManager 
+                  images={formData.images} 
+                  onFileChange={handleFileChange} 
+                  onAltChange={handleAltChange} 
+                  onAddImage={handleAddImage} 
+                  onDeleteImage={handleDeleteImage} 
+              />
+              */

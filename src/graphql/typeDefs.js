@@ -23,6 +23,7 @@ type Query {
   user(id: Int!): User
   users: [User!]!
   getUserByEmail(email: String!): User
+  searchUsers(query: String!): [User!]!
 
   testArticleModel: String
   testContext: String
@@ -88,6 +89,7 @@ type Mutation {
 
   # User mutations
   createUser(email: String!, displayName: String!, provider: String!): User!
+  updateUserRole(id: ID!, role: String!): User!
 }
 
 type Article {

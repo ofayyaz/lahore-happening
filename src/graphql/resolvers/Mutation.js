@@ -245,6 +245,13 @@ const Mutation = {
     });
   },
 
+  updateUserRole: async (_, { id, role }) => {
+    return await prisma.user.update({
+      where: { id: Number(id) },
+      data: { role },
+    });
+  },
+
   createCollection: async (_, args) => await prisma.collection.create({
     data: {
       title: args.title,

@@ -4,9 +4,10 @@ import CategoryAdmin from '../components/adminForms/categoryAdminForm';
 import AuthorAdmin from '../components/adminForms/authorAdminForm';
 import ArticleAdmin from '../components/adminForms/articleAdminForm';
 import Link from 'next/link';
+import PrivateRoute from '../components/PrivateRoute';
 
 
-export default function AdminPage() {
+function Admin() {
     const [isCategoryAdminOpen, setIsCategoryAdminOpen] = useState(false);
     const [isAuthorAdminOpen, setIsAuthorAdminOpen] = useState(false);
 
@@ -49,3 +50,11 @@ export default function AdminPage() {
     );
     
 }
+
+const AdminPage = () => (
+    <PrivateRoute allowedRoles={['Admin', 'Moderator']}>
+      <Admin />
+    </PrivateRoute>
+  );
+  
+export default AdminPage;

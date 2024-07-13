@@ -1,10 +1,10 @@
-import React, { useCallback, useMemo, useEffect }  from 'react';
+import React, { useCallback, useMemo, useEffect,useRef }  from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 import 'quill/dist/quill.snow.css'; 
-import quill from 'quill/core/quill';
 import QuillEditor from 'react-quill';
 import ReactQuill from 'react-quill';
+import styles from './ArticleForm.module.css';
 
 const baseModules = {
     toolbar: {
@@ -30,10 +30,12 @@ const baseModules = {
 ];
 
 const ArticleForm = ({ formData, onChange, categoriesData, authorsData, quillRef, setFormData}) => {
-    const handleImage = useCallback(() => {
+  const currentContentRef = useRef(formData.content);  
+  
+  const handleImage = useCallback(() => {
         if (typeof window !== 'undefined') {
           //console.log("Image handler called");
-          console.log("document in imageHandler at start:", document.location.href); // Check current URL at start
+          //console.log("document in imageHandler at start:", document.location.href); // Check current URL at start
           //console.log('quillRef.current in ArticleForm handleImage:', quillRef.current); 
           const input = document.createElement('input');
           input.setAttribute('type', 'file');
@@ -52,11 +54,8 @@ const ArticleForm = ({ formData, onChange, categoriesData, authorsData, quillRef
               // Add the file and its placeholder to formData.images
               setFormData(oldFormData => {
                 const newImages = [...oldFormData.images, { file, placeholder: placeholderURL }];
-                console.log("newImages array inside state update:", newImages);
-                console.log("placeholderURL inside handleImage input.onChange setFormData:", placeholderURL);
                 //quill.insertEmbed(range.index, 'image', placeholderURL);
                 const delta = quill.getContents();
-                console.log("quill content in ArticleForm handleImage:", delta)
                 return {
                   ...oldFormData,
                   images: newImages
@@ -69,16 +68,23 @@ const ArticleForm = ({ formData, onChange, categoriesData, authorsData, quillRef
 
     //console.log('quillRef in ArticleForm:', quillRef);
     
-    
     const handleQuillChange = (content, delta, source, editor) => {
-        const html = editor.getHTML();
-        const event = {
-          target: {
-            name: 'content',
-            value: html
-          }
-        };
-        onChange(event);
+      if (source === 'user') {
+      const currentSelection = quillRef.current.getEditor().getSelection();
+      const html = editor.getHTML();
+      const event = {
+        target: {
+          name: 'content',
+          value: html
+        }
+      };
+      onChange(event);
+      setTimeout(() => {
+        if (currentSelection) {
+          quillRef.current.getEditor().setSelection(currentSelection.index, currentSelection.length);
+        }
+        }, 0);
+      }
     };
 
     useEffect(() => {
@@ -102,8 +108,8 @@ const ArticleForm = ({ formData, onChange, categoriesData, authorsData, quillRef
 
     return (
         <>
-            <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
+            <div className={styles.formGroup}>
+                <label htmlFor="title" className={styles.titleLabel}>Title</label>
                 <input
                     type="text"
                     name="title"
@@ -111,45 +117,45 @@ const ArticleForm = ({ formData, onChange, categoriesData, authorsData, quillRef
                     value={formData.title}
                     onChange={onChange}
                     required
-                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                    className={styles.inputField}
                 />
             </div>
-            <div>
-                <label htmlFor="content" className="block text-sm font-medium text-gray-700">Content</label>
+            <div className={styles.formGroupQuill}>
+                <label htmlFor="content" className={styles.titleLabel}>Content</label>
                 <QuillEditor
                     ref={quillRef}
                     value={formData.content}
                     onChange={handleQuillChange}
                     modules={modules}
                     formats={formats}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-          style={{ height: '300px' }}
+                    className={`${styles.quillEditor} ${styles.inputField}`}
+                    style={{ height: '500px' }}
                 />
             </div>
-            <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700">Category</label>
+            <div className={styles.formGroupCategory}>
+                <label htmlFor="category" className={styles.titleLabel}>Category</label>
                 <select
                     name="categoryId"
                     id="category"
                     value={formData.categoryId}
                     onChange={onChange}
                     required
-                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
-                    >
+                    className={styles.selectField}
+                >
                     {categoriesData && categoriesData.allCategories.map(category => (
                         <option key={category.id} value={category.id}>{category.name}</option>
                     ))}
                 </select>
             </div>
-            <div>
-                <label htmlFor="author" className="block text-sm font-medium text-gray-700">Author</label>
+            <div className={styles.formGroup}>
+                <label htmlFor="author" className={styles.titleLabel}>Author</label>
                 <select
                     name="authorId"
                     id="author"
                     value={formData.authorId}
                     onChange={onChange}
                     required
-                    className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-500 focus:ring-opacity-50"
+                    className={styles.selectField}
                 >
                     {authorsData && authorsData.allAuthors.map(author => (
                         <option key={author.id} value={author.id}>{author.name}</option>
@@ -157,8 +163,8 @@ const ArticleForm = ({ formData, onChange, categoriesData, authorsData, quillRef
                 </select>
             </div>
                
-            <div>
-                <label>
+            <div className={styles.formGroup}>
+                <label className={styles.checkboxLabel}>
                     <input
                         type="checkbox"
                         name="featured"
@@ -167,7 +173,7 @@ const ArticleForm = ({ formData, onChange, categoriesData, authorsData, quillRef
                     />
                     Featured
                 </label>
-                <label>
+                <label className={styles.checkboxLabel}>
                     <input
                         type="checkbox"
                         name="published"

@@ -15,6 +15,7 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
+import PrivateRoute from '../../components/PrivateRoute';
 
 const GET_ALL_ARTICLES = gql`
   query GetAllArticles {
@@ -53,7 +54,7 @@ function Alert(props) {
     return <MuiAlert elevation={6} variant="filled" {...props} />;
 }
 
-export default function ArticlesAdmin() {
+function ArticlesAdmin() {
     const { data, loading, error } = useQuery(GET_ALL_ARTICLES);
     const [searchTerm, setSearchTerm] = useState('');
     const [deleteArticle] = useMutation(DELETE_ARTICLE);
@@ -168,3 +169,12 @@ export default function ArticlesAdmin() {
         </div>
     );
 }
+
+
+const ArticlesAdminPage = () => (
+    <PrivateRoute allowedRoles={['Admin','Moderator']}>
+      <ArticlesAdmin />
+    </PrivateRoute>
+  );
+  
+export default ArticlesAdminPage;
