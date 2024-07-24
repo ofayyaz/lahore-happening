@@ -1,16 +1,28 @@
 import { useEffect,useState } from 'react';
 import { useRouter } from 'next/router';
-import { gql, useQuery, useMutation , ApolloClient, InMemoryCache} from '@apollo/client';
+import { useQuery, useMutation , ApolloClient, InMemoryCache} from '@apollo/client';
 import Header from '../../components/header/header';
 import Link from 'next/link';
 import Comment from '../../components/Comment';
-import { auth } from '../../../firebaseConfig'; // Import your Firebase config
-import ThumbUpIcon from '@mui/icons-material/ThumbUp';
-import { GET_ARTICLE_QUERY, GET_COMMENTS_QUERY, ADD_COMMENT_MUTATION, GET_USER_BY_EMAIL, LIKE_COMMENT_MUTATION } from '../../graphql/queries';
+import { auth } from '../../../firebaseConfig';
+import { GET_ARTICLE,GET_ARTICLE_QUERY, GET_COMMENTS_QUERY, ADD_COMMENT_MUTATION, GET_USER_BY_EMAIL, LIKE_COMMENT_MUTATION } from '../../graphql/queries';
+import { DELETE_COMMENT_MUTATION } from '../../graphql/mutations';
+import { format } from 'date-fns';
+import styles from './ArticlePage.module.css';
+import SharePanel from '../../components/SharePanel';
+
 
 export async function getServerSideProps(context) {
   const { id } = context.params;
   const articleId = parseInt(id);
+
+  if (isNaN(articleId)) {
+    console.error('Invalid article ID:', id);
+    return {
+      notFound: true,
+    };
+  }
+
   let articleData = null;
   let commentsData = null;
 
@@ -19,7 +31,7 @@ export async function getServerSideProps(context) {
       uri: process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT,
       cache: new InMemoryCache(),
     });
-
+    console.log(`Fetching article with ID: ${articleId}`);
     const articleResponse = await client.query({
       query: GET_ARTICLE_QUERY,
       variables: { id: articleId },
@@ -66,6 +78,7 @@ const ArticlePage =({ article, comments, }) =>{
     const [parentId, setParentId] = useState(null);
     const [user, setUser] = useState(null);
     const [userId, setUserId] = useState(null); // State to store database user ID
+    const [userRole, setUserRole] = useState(null);
 
     const { data: userData, refetch: refetchUser } = useQuery(GET_USER_BY_EMAIL, {
       skip: !user,
@@ -78,6 +91,7 @@ const ArticlePage =({ article, comments, }) =>{
           const { data } = await refetchUser({ email: firebaseUser.email });
           if (data && data.getUserByEmail) {
             setUserId(data.getUserByEmail.id);
+            setUserRole(data.getUserByEmail.role);
           } else {
             console.error('User not found in database.');
           }
@@ -107,6 +121,10 @@ const ArticlePage =({ article, comments, }) =>{
     });
 
     const [likeComment] = useMutation(LIKE_COMMENT_MUTATION, {
+      refetchQueries: [{ query: GET_COMMENTS_QUERY, variables: { articleId } }],
+    });
+
+    const [deleteComment] = useMutation(DELETE_COMMENT_MUTATION, {
       refetchQueries: [{ query: GET_COMMENTS_QUERY, variables: { articleId } }],
     });
 
@@ -166,50 +184,85 @@ const ArticlePage =({ article, comments, }) =>{
         console.error('Error liking comment:', error);
       }
     };
-  
+
+    const handleDelete = async (commentId) => {
+      if (!userId) {
+        console.error('User ID is null. Cannot delete comment.');
+        return;
+      }
+      try {
+        await deleteComment({
+          variables: {
+            commentId,
+            userId,
+          },
+        });
+        router.reload();
+      } catch (error) {
+        console.error('Error deleting comment:', error);
+      }
+    };
+
+    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
     //const article = articleData?.getArticleById;
     //const comments = commentsData?.getCommentsByArticleId;
     const rootComments = comments?.filter(comment => comment.parentId === null).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) || [];
+    //const formattedDate = "formatted date"
+    const formattedDate = article ? format(new Date(article.createdAt), 'MMMM d, yyyy') : '';
+    const authorName = article ? article.author.name : '';
 
     return (
         <div>
           <Header />
-          <div style={{ padding: '20px' }}>
-            <Link href="/" style={{ textDecoration: 'none', color: 'blue' }}>
-              Go back to home
+          <div className={styles.container}>
+            <Link href="/" className={styles.backLink}>
+              Back to Home
             </Link>
             {article ? (
               <div>
-                <h1 className="text-center font-bold">{article.title}</h1>
+                <Link href={`/category/${article.category.id}`} className={styles.backLink}>
+                  {article.category.name}
+                </Link>
+                <SharePanel url={shareUrl} title={article.title} />
+                <h1 className={styles.title}>{article.title}</h1>
+                <p className={styles.metaInfo}>By <Link href={`/author/${article.author.id}`} className={styles.backLink} >{authorName}</Link>{formattedDate}</p>
                 <div dangerouslySetInnerHTML={{ __html: article.content }} />
                 
-                <div style={{ marginTop: '20px' }}>
-              <h2>Comments</h2>
-              {rootComments.length > 0 ? (
-                rootComments.map(comment => (
-                  <Comment key={comment.id} comment={comment} onReply={handleReply} onLike={handleLike} />
-                ))
-              ) : (
-                <p>No comments yet.</p>
-              )}
-              {user ? (
-                <div className="p-2.5 border border-gray-300 rounded mt-2.5 shadow-inner">
-                  <textarea
-                    id="commentInput"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="Enter your comment"
-                    style={{ width: '100%', marginTop: '10px', padding: '10px' }}
-                  />
-                  <button onClick={handleAddComment} style={{ marginTop: '10px' }}>
-                    {parentId ? 'Reply to Comment' : 'Add Comment'}
-                  </button>
-                </div>
-              ) : (
-                <p>Please <Link href={`/login?redirect=${encodeURIComponent(router.asPath)}`}><span style={{ textDecoration: 'none', color: 'blue' }}>log in</span></Link> to add a comment.</p>
-              )}
-            </div>
+                <div className={styles.commentsContainer}>
+                  <h2>Comments</h2>
+                  {rootComments.length > 0 ? (
+                    rootComments.map(comment => (
+                      <Comment 
+                        key={comment.id} 
+                        comment={comment} 
+                        onReply={handleReply} 
+                        onLike={handleLike} 
+                        onDelete={handleDelete}
+                        currentUser={user}
+                        isAdmin={userRole === 'Admin'}
+                      />
+                    ))
+                  ) : (
+                    <p>No comments yet.</p>
+                  )}
+                  {user ? (
+                    <div className="p-2.5 border border-gray-300 rounded mt-2.5 shadow-inner">
+                      <textarea
+                        id="commentInput"
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        placeholder="Enter your comment"
+                        style={{ width: '100%', marginTop: '10px', padding: '10px' }}
+                      />
+                      <button onClick={handleAddComment} style={{ marginTop: '10px' }}>
+                        {parentId ? 'Reply to Comment' : 'Add Comment'}
+                      </button>
+                    </div>
+                  ) : (
+                    <p>Please <Link href={`/login?redirect=${encodeURIComponent(router.asPath)}`}><span style={{ textDecoration: 'none', color: 'blue' }}>log in</span></Link> to add a comment.</p>
+                  )}
               </div>
+            </div>
             ) : <p>Article not found.</p>}
           </div>
         </div>

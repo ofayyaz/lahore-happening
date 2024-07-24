@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import styles from './Comment.module.css'; 
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 
-const Comment = ({ comment, onLike, onReply }) => {
+const Comment = ({ comment, onLike, onReply,onDelete, currentUser, isAdmin }) => {
   const [showReply, setShowReply] = useState(false);
   const [replyText, setReplyText] = useState('');
 
@@ -12,6 +12,9 @@ const Comment = ({ comment, onLike, onReply }) => {
     setReplyText('');
     setShowReply(false);
   };
+
+  const canDelete = currentUser?.id === comment.user.id || isAdmin;
+
 
   return (
     <div className="border border-gray-300 rounded p-4 mb-4">
@@ -31,6 +34,9 @@ const Comment = ({ comment, onLike, onReply }) => {
         {comment.parentId === null && (
           <button onClick={() => setShowReply(!showReply)} className="text-blue-500">Reply</button>
         )}
+        {canDelete && (
+          <button onClick={() => onDelete(comment.id)} className="text-red-500">Delete</button>
+        )}
       </div>
       {showReply && (
         <div className="mt-2">
@@ -45,7 +51,7 @@ const Comment = ({ comment, onLike, onReply }) => {
       )}
       <div className="ml-5 mt-2">
         {comment.children && [...comment.children].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map(child => (
-          <Comment key={child.id} comment={child} onReply={onReply} onLike={onLike} />
+          <Comment key={child.id} comment={child} onReply={onReply} onLike={onLike} onDelete={onDelete} currentUser={currentUser} isAdmin={isAdmin}/>
         ))}
       </div>
     </div>
@@ -57,6 +63,9 @@ Comment.propTypes = {
   onReply: PropTypes.func.isRequired,
   onLike: PropTypes.func.isRequired,
   user: PropTypes.object,
+  onDelete: PropTypes.func.isRequired,
+  currentUser: PropTypes.object,
+  isAdmin: PropTypes.bool,
 };
 
 export default Comment;

@@ -1,26 +1,53 @@
-/* Home.module.css */
 .container {
-    display: flex;
-    justify-content: space-between;
-    margin: 20px;
-  }
-  
-  .featuredContainer {
-    flex-basis: 60%;
-  }
-  
-  .otherArticlesContainer {
-    flex-basis: 35%;
-    margin-left: 20px;
-  }
-  
-  .articleImage {
-    width: 100%;
-    margin-bottom: 10px;
-  }
-  
-  .articleTitle {
-    font-size: 1.5rem;
-    color: #333;
-  }
-  
+  display: flex;
+  width: 100%;
+}
+
+.featuredContainer {
+  width: 60%;
+  padding: 10px;
+}
+
+.otherArticlesContainer {
+  width: 40%;
+  padding: 10px;
+}
+
+.mainFeaturedArticle {
+  width: 100%;
+}
+
+.featuredImage {
+  width: 100%;
+  height: auto;
+}
+
+.mainArticleTitle {
+  text-align: left;
+  font-size: 24px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.sideFeaturedArticle {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.sideArticleContent {
+  display: flex;
+  align-items: center;
+}
+
+.sideImage {
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  margin-right: 10px;
+}
+
+.sideArticleTitle {
+  font-size: 18px;
+  font-weight: bold;
+}

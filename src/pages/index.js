@@ -29,8 +29,12 @@ export default function Home() {
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
 
-  const featuredArticle = data.allArticles.find(article => article.featured);
-  const otherArticles = data.allArticles.filter(article => !article.featured && article.published);
+  const featuredArticles = data.allArticles
+  .filter(article => article.featured && article.published)
+  .sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+
+  const featuredArticle = featuredArticles[0];
+  const otherArticles = featuredArticles.slice(1, 4); // Get the next three featured articles
 
   return (
     <div>
@@ -38,24 +42,32 @@ export default function Home() {
       <div className={styles.container}>
         <div className={styles.featuredContainer}>
           {featuredArticle && (
-            <div key={featuredArticle.id}>
+            <div key={featuredArticle.id} className={styles.mainFeaturedArticle}>
               <Link href={`/article/${featuredArticle.id}`}>
-                <h2 className={styles.articleTitle}>{featuredArticle.title}</h2>
-                {featuredArticle.images.map((img, index) => (
-                  <img key={index} src={img.url} alt={img.alt || 'Article image'} className={styles.articleImage} />
-                ))}
+                <div>
+                  <img
+                    src={featuredArticle.images[0]?.url}
+                    alt={featuredArticle.images[0]?.alt || 'Article image'}
+                    className={styles.featuredImage}
+                  />
+                  <h2 className={styles.mainArticleTitle}>{featuredArticle.title}</h2>
+                </div>
               </Link>
             </div>
           )}
         </div>
         <div className={styles.otherArticlesContainer}>
-          {otherArticles.map(article => (
-            <div key={article.id}>
+          {otherArticles.map((article, index) => (
+            <div key={article.id} className={styles.sideFeaturedArticle}>
               <Link href={`/article/${article.id}`}>
-                <h2 className={styles.articleTitle}>{article.title}</h2>
-                {article.images.map((img, index) => (
-                  <img key={index} src={img.url} alt={img.alt || 'Article image'} className={styles.articleImage} />
-                ))}
+                <div className={styles.sideArticleContent}>
+                  <img
+                    src={article.images[0]?.url}
+                    alt={article.images[0]?.alt || 'Article image'}
+                    className={styles.sideImage}
+                  />
+                  <h2 className={styles.sideArticleTitle}>{article.title}</h2>
+                </div>
               </Link>
             </div>
           ))}

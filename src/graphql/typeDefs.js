@@ -18,6 +18,9 @@ type Query {
   getImageById(id: Int!): Image
   getCollectionById(id: Int!): Collection
 
+  getAllArticlesByCategoryId(categoryId: Int!): [Article!]!
+  getAllArticlesByAuthorId(authorId: Int!): [Article!]!
+
   getCommentsByArticleId(articleId: Int!): [Comment!]!
 
   user(id: Int!): User

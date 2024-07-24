@@ -222,12 +222,12 @@ function EditArticle() {
         const delta = quill.getContents();
         console.log("quill content:", delta)
         console.log("handle submit all images:", formData.images)
-        const imageUploadPromises = formData.images.filter(img => img.file).map((img) => {
+        const imageUploadPromises = formData.images.filter(img => img.file).map((img,index) => {
             const uploadFormData = new FormData();
             uploadFormData.append('file', img.file);
             return axios.post('/api/upload', uploadFormData).then(response => {
               console.log("in EditArticle handleSubmit images:", response.data[0].url);
-              return { url: response.data[0].url, alt: img.imageAlt, placeholder: img.placeholder
+              return { url: response.data[0].url, alt: img.imageAlt, placeholder: img.placeholder, index 
                };
           });
         });
@@ -267,7 +267,7 @@ function EditArticle() {
             authorId: parseInt(formData.authorId),
             featured: formData.featured,
             published: formData.published,
-            images: allImages.map(img => ({ url: img.url, alt: img.alt })) 
+            images: uniqueImages.map(img => ({ url: img.url, alt: img.alt })) 
         };
         const response = await updateArticle({ variables });
         if (response.data && response.data.updateArticle) {

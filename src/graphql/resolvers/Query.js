@@ -38,6 +38,36 @@ const Query = {
       return comments || [];
     },
 
+    getAllArticlesByCategoryId: async (_, { categoryId }) => {
+      const articles = await prisma.article.findMany({
+        where: { categoryId: parseInt(categoryId) },
+        include: {
+          category: true,
+          author: true,
+          images: true,
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+      return articles || [];
+    },
+    
+    getAllArticlesByAuthorId: async (_, { authorId }) => {
+      const articles = await prisma.article.findMany({
+        where: { authorId: parseInt(authorId) },
+        include: {
+          category: true,
+          author: true,
+          images: true,
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+      return articles || [];
+    },
+
     getCategoryById: async (_, { id }) => await prisma.category.findUnique({ where: { id: parseInt(id) } }),
     getAuthorById: async (_, { id }) => await prisma.author.findUnique({ where: { id: parseInt(id) } }),
     getCommentById: async (_, { id }) => await prisma.comment.findUnique({ where: { id: parseInt(id) } }),

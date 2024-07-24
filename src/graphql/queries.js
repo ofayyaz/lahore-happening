@@ -71,15 +71,25 @@ export const GET_COMMENTS_QUERY = gql`
 `;
 
 export const GET_ARTICLE_QUERY = gql`
-  query getArticleById($id: Int!) {
+  query GetArticleById($id: Int!) {
     getArticleById(id: $id) {
       id
       title
       content
+      createdAt
+      updatedAt
+      published
+      featured
+      category {
+        id
+        name
+      }
       author {
+        id
         name
       }
       images {
+        id
         url
         alt
       }
@@ -126,6 +136,7 @@ export const GET_USER_BY_EMAIL = gql`
       id
       email
       displayName
+      role
     }
   }
 `;
@@ -148,6 +159,40 @@ export const LIKE_COMMENT_MUTATION = gql`
     likeComment(commentId: $commentId, userId: $userId) {
       id
       likeCount
+    }
+  }
+`;
+
+export const GET_ALL_ARTICLES_BY_CATEGORY_ID = gql`
+  query GetAllArticlesByCategoryId($categoryId: Int!) {
+    getAllArticlesByCategoryId(categoryId: $categoryId) {
+      id
+      title
+      category {
+        name
+      }
+      images {
+        id
+        url
+        alt
+      }
+    }
+  }
+`;
+
+export const GET_ALL_ARTICLES_BY_AUTHOR_ID= gql`
+  query GetAllArticlesByAuthorId($authorId: Int!) {
+    getAllArticlesByAuthorId(authorId: $authorId) {
+      id
+      title
+      category {
+        name
+      }
+      images {
+        id
+        url
+        alt
+      }
     }
   }
 `;

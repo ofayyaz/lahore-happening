@@ -1,0 +1,12 @@
+.sharePanel {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .shareButton {
+    margin: 0 10px;
+    padding: 10px;
+  }
+  

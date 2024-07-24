@@ -47,4 +47,11 @@
     background-color: red;
     color: white;
     margin-left: 10px;
-  }
+    width: 80px; /* Set a fixed width */
+    height: 36px; /* Set a fixed height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0;
+}

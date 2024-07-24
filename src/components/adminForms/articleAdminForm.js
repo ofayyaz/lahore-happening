@@ -3,6 +3,7 @@ import { useMutation, useQuery,gql } from '@apollo/client';
 import axios from 'axios';
 import dynamic from 'next/dynamic';
 import styles from './ArticleAdmin.module.css';
+import Delta from 'quill-delta';
 const ArticleForm = dynamic(() => import('./ArticleForm'), { ssr: false });
 
 
@@ -78,16 +79,44 @@ export default function ArticleAdmin() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const imageUploadPromises = formData.images.filter(img => img.file).map( (img, index) => {
-                const formData = new FormData();
-                formData.append('file', img.file);
-                return axios.post('/api/upload', formData).then(response => ({ response: response, index: index }));
-                });
-            const imageResponses = await Promise.all(imageUploadPromises);
-            const imageUrls = imageResponses.map(res => ({
-                url: res.response.data[0].url,
-                alt: formData.images[res.index].imageAlt
+          const quill = quillRef.current.getEditor();
+          const delta = quill.getContents();
+          console.log("quill contents at start of handleSubmit:", delta);
+          console.log("all images at start of handleSubmit in formData.images:", formData.images);
+          const imageUploadPromises = formData.images.filter(img => img.file).map( (img, index) => {
+            const formData = new FormData();
+            formData.append('file', img.file);
+            return axios.post('/api/upload', formData).then(response => ({
+              url: response.data[0].url,
+              alt: img.imageAlt,
+              placeholder: img.placeholder,
+              index
             }));
+          });
+          const uploadedImages = await Promise.all(imageUploadPromises);
+          console.log("uploadedImages after completed promises in handleSubmit:", uploadedImages);
+          const updatedDeltaOps = delta.ops.map(op => {
+            if (op.insert && op.insert.image) {
+              console.log('an image op from quill delta in handleSubmit:', op.insert.image);//this op should be the final delta op
+              const uploadedImage = uploadedImages.find(img => img.placeholder === op.insert.image); //this equality isnt firing because op.insert.image in child hasnt been set correctly in handlePaste
+              console.log('uploadedImage from handleSubmit:', uploadedImage); // Log updated images
+                         
+              if (uploadedImage) {
+                return { insert: { image: uploadedImage.url } };
+              }
+            }
+          return op;
+          });
+
+            const updatedDelta = new Delta(updatedDeltaOps);
+            quill.setContents(updatedDelta);
+
+            const finalContent = quill.root.innerHTML;
+            
+            const imageUrls = uploadedImages.map(img => ({
+                url: img.url,
+                alt: img.alt
+            })).filter(img => img.url !== undefined);;
         
             const categoryId = formData.categoryId ? parseInt(formData.categoryId) : null;
             const authorId = formData.authorId ? parseInt(formData.authorId) : null;
@@ -95,7 +124,7 @@ export default function ArticleAdmin() {
 
             const variables = {
                 title: formData.title,
-                content: formData.content,
+                content: finalContent,
                 categoryId, 
                 authorId, 
                 featured: formData.featured,
@@ -104,7 +133,8 @@ export default function ArticleAdmin() {
                 collectionId // This will now be null if empty, which should be acceptable if the field is optional
             };
 
-            console.log('Submitting with data:', variables);
+            console.log('Images array being written to the database:', imageUrls);
+            console.log('Mutation variables:', variables);
             
             const response = await createArticle({ variables: variables });
 
@@ -121,7 +151,7 @@ export default function ArticleAdmin() {
 
     return (
         <form onSubmit={handleSubmit} className={styles.formContainer}>
-            <h2 className={styles.title}>Add New Article</h2>
+            <h2 className={styles.title}>Create New Article</h2>
             <ArticleForm
                 formData={formData}
                 onChange={handleInputChange}

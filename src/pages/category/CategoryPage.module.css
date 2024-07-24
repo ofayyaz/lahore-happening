@@ -1,0 +1,51 @@
+.container {
+    padding: 20px;
+  }
+
+  .customTitle {
+    font-size: 40px; /* Adjust the size as needed */
+  }
+  
+  .latestArticle {
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .latestImage {
+    width: 600px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  
+  .latestTitle {
+    margin-top: 10px;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+  }
+  
+  .gridContainer {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+  
+  .gridItem {
+    text-align: center;
+  }
+  
+  .gridImage {
+    width: 250px;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  
+  .gridTitle {
+    margin-top: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+  }
+  

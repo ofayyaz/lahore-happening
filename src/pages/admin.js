@@ -23,7 +23,7 @@ function Admin() {
 
     return (
         <div className="container mx-auto px-4 py-12">
-            <h1 className="text-xl font-bold text-center mb-6">Admin Dashboard</h1>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <div onClick={toggleCategoryAdmin} className="cursor-pointer">

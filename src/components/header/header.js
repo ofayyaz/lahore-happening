@@ -1,5 +1,7 @@
 import styles from './Header.module.css';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useQuery } from '@apollo/client';
 import { useState, useEffect } from 'react';
 import MenuIcon from '@mui/icons-material/Menu';
 import { Button } from '@mui/material';
@@ -7,6 +9,7 @@ import ClickAwayListener from '@mui/material/ClickAwayListener';
 import SearchIcon from '@mui/icons-material/Search';
 import { auth } from '../../../firebaseConfig';
 import { useRouter } from 'next/router';
+import { GET_CATEGORIES } from '../../graphql/queries';
 let lastScrollY = 0;
 
 export default function Header() {
@@ -17,6 +20,8 @@ export default function Header() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+
+    const { data: categoriesData, loading, error } = useQuery(GET_CATEGORIES);
 
     useEffect(() => {
         const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
@@ -68,6 +73,12 @@ export default function Header() {
         setSearchVisible(false);
     };
 
+    const handleMenuButtonClick = () => {
+        setTimeout(() => {
+            setMenuVisible(false);
+        }, 300);
+    };
+
     return (
         <>
         <div className={`${styles.header} ${isHeaderVisible ? styles.headerVisible : styles.headerHidden}`}>
@@ -78,25 +89,23 @@ export default function Header() {
                             <MenuIcon />
                         </button>
                         {menuVisible && (
-                            <div className="absolute left-0 mt-2 w-250 bg-white text-black rounded-md shadow-lg z-20">
-                                <button
-                                    onClick={redirectToLogin}
-                                    className="block w-full text-left px-4 py-2 hover:bg-gray-200"
-                                >
-                                    Sign in
-                                </button>
-                                <button
-                                    onClick={handleSignOut}
-                                    className="block w-full text-left px-4 py-2 hover:bg-gray-200"
-                                >
-                                    Sign out
-                                </button>
-                            </div>
+                        <div className={styles.menuPanel}>
+                            {categoriesData.allCategories.map(category => (
+                                <Link key={category.id} href={`/category/${category.id}`}>
+                                <button className={styles.menuButton} onClick={handleMenuButtonClick}>{category.name}</button>
+                                </Link>
+                            ))}
+                            <button onClick={redirectToLogin} className={styles.menuButtonSign}>Sign in</button>
+                            <button onClick={handleSignOut} className={styles.menuButtonSign}>Sign out</button>
+                        </div>
                         )}
                     </div>
                 </ClickAwayListener>
             </div>
-            <Image src="/logo.jpg" alt="Logo" width={60} height={40} />
+            <Link href="/">
+                <Image src="/logo.jpg" alt="Site Logo" width={40} height={40} className={styles.logo} />
+            </Link>
+            
             <ClickAwayListener onClickAway={handleSearchClickAway}>
                 <div onClick={() => setSearchVisible(!searchVisible)}><SearchIcon/></div>
             </ClickAwayListener>
